@@ -2,6 +2,7 @@ import os
 import re
 import json
 import random
+import unicodedata
 from typing import Dict, Any, Optional
 
 from config import Config
@@ -649,14 +650,19 @@ ESTRUCTURA JSON EXACTA:
         """
         if not game:
             return 'No se pudo normalizar la respuesta de Ollama.'
-        source_words = set(re.findall(r'\b[a-záéíóúüñ]{4,}\b', source_text.lower()))
+        def normalized_words(text):
+            normalized = unicodedata.normalize('NFC', str(text or '').lower())
+            normalized = normalized.translate(str.maketrans('áéíóúü', 'aeiouu'))
+            return set(re.findall(r'\b[a-zñ]{4,}\b', normalized))
+
+        source_words = normalized_words(source_text)
         ignored = {
             'concepto', 'conceptos', 'material', 'tema', 'clase', 'actividad',
             'juego', 'parte', 'ciclo', 'agua',
         }
 
         def grounded(text: Any) -> bool:
-            words = set(re.findall(r'\b[a-záéíóúüñ]{4,}\b', str(text or '').lower())) - ignored
+            words = normalized_words(text) - ignored
             if not words:
                 return False
             # A title such as "ciclo del agua" alone is insufficient evidence.
