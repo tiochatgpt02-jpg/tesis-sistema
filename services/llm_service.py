@@ -50,7 +50,8 @@ def generate_text(prompt, timeout=None, json_mode=False):
         payload['response_format'] = {'type': 'json_object'}
     request = urllib.request.Request(
         endpoint, data=json.dumps(payload).encode('utf-8'),
-        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {key}'},
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {key}',
+                 'User-Agent': 'AulaComputacionTesis/1.0'},
         method='POST',
     )
     wait = min(float(timeout or Config.AI_TIMEOUT_SECONDS), Config.AI_TIMEOUT_SECONDS)
