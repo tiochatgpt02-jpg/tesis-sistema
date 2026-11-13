@@ -224,7 +224,12 @@ Entrega entre 3 y 5 parejas. Cada pareja debe conectar un concepto con una defin
             type_instructions = """
 Crea un juego de ORDENAR CONCEPTOS para niños de primaria.
 Entrega entre 3 y 6 pasos que deban ordenarse, basados solo en un proceso, ciclo, historia o secuencia explícita del material.
+No conviertas una lista de dispositivos, definiciones o conceptos independientes en un proceso temporal.
 """
+            sequence_fact = next((fact for fact in source_facts if re.search(
+                r'\b(primero|luego|después|despues|finalmente)\b', fact, re.IGNORECASE)), '')
+            if sequence_fact:
+                type_instructions += f'\nDivide exclusivamente esta secuencia en sus pasos literales: {sequence_fact}\n'
             example_json = f"""{{
   "game_type": "ordering",
   "title": "Ordena la aventura: {title}",
@@ -284,6 +289,7 @@ INSTRUCCIONES PEDAGÓGICAS:
 3. {type_instructions.strip()}
 {adaptation_instruction}4. No generes HTML, CSS, JavaScript ni etiquetas: solo datos JSON.
 5. Devuelve ÚNICAMENTE la estructura en JSON válido, sin texto introductorio ni bloques markdown fuera del JSON.
+6. Copia literalmente del material los textos evaluados: answer, blank_word, pairs.left, items de ordering y items.item de drag_drop. No agregues sinónimos ni prefijos como "Primer paso:" o "Segundo paso:". En challenge usa respuestas correctas cortas que sean fragmentos literales del material y coincidan con una opción.
 
 ESTRUCTURA JSON EXACTA:
 {example_json}
