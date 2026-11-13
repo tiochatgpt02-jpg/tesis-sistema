@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="40%" stop-color="#1e1b4b" />
+      <stop offset="80%" stop-color="#312e81" />
+      <stop offset="100%" stop-color="#4c1d95" />
+    </linearGradient>
+
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <linearGradient id="pinkGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <!-- Filter for soft glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)" />
+
+  <!-- Ambient Glowing Blobs -->
+  <circle cx="200" cy="200" r="300" fill="url(#cyanGlow)" filter="url(#glow)" />
+  <circle cx="1700" cy="300" r="350" fill="url(#pinkGlow)" filter="url(#glow)" />
+  <circle cx="1000" cy="900" r="400" fill="url(#emeraldGlow)" filter="url(#glow)" />
+  <circle cx="300" cy="850" r="250" fill="url(#pinkGlow)" filter="url(#glow)" />
+
+  <!-- Grid Tech Pattern Overlay -->
+  <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+    <path d="M 0,100 H 1920 M 0,200 H 1920 M 0,300 H 1920 M 0,400 H 1920 M 0,500 H 1920 M 0,600 H 1920 M 0,700 H 1920 M 0,800 H 1920 M 0,900 H 1920 M 0,1000 H 1920" />
+    <path d="M 100,0 V 1080 M 200,0 V 1080 M 300,0 V 1080 M 400,0 V 1080 M 500,0 V 1080 M 600,0 V 1080 M 700,0 V 1080 M 800,0 V 1080 M 900,0 V 1080 M 1000,0 V 1080 M 1100,0 V 1080 M 1200,0 V 1080 M 1300,0 V 1080 M 1400,0 V 1080 M 1500,0 V 1080 M 1600,0 V 1080 M 1700,0 V 1080 M 1800,0 V 1080" />
+  </g>
+
+  <!-- Circuit lines & nodes -->
+  <g stroke="#38bdf8" stroke-opacity="0.25" stroke-width="2" fill="none">
+    <path d="M 150,150 L 300,150 L 400,250 L 550,250" />
+    <circle cx="150" cy="150" r="5" fill="#38bdf8" />
+    <circle cx="550" cy="250" r="5" fill="#38bdf8" />
+
+    <path d="M 1750,800 L 1600,800 L 1500,700 L 1350,700" />
+    <circle cx="1750" cy="800" r="5" fill="#ec4899" />
+    <circle cx="1350" cy="700" r="5" fill="#ec4899" />
+
+    <path d="M 200,650 L 350,650 L 420,720 L 420,850" />
+    <circle cx="200" cy="650" r="5" fill="#34d399" />
+    <circle cx="420" cy="850" r="5" fill="#34d399" />
+  </g>
+
+  <!-- Left Side Floating Tech Illustrations (Primary School Computer Science Vibe) -->
+  
+  <!-- Cute Robot Icon (Top Left) -->
+  <g transform="translate(180, 180)">
+    <!-- Robot Head -->
+    <rect x="0" y="0" width="90" height="75" rx="16" fill="#38bdf8" opacity="0.9"/>
+    <!-- Antenna -->
+    <line x1="45" y1="0" x2="45" y2="-15" stroke="#38bdf8" stroke-width="4" />
+    <circle cx="45" cy="-20" r="7" fill="#f43f5e" />
+    <!-- Eyes -->
+    <circle cx="28" cy="30" r="12" fill="#ffffff"/>
+    <circle cx="62" cy="30" r="12" fill="#ffffff"/>
+    <circle cx="28" cy="30" r="6" fill="#0f172a"/>
+    <circle cx="62" cy="30" r="6" fill="#0f172a"/>
+    <!-- Smile -->
+    <path d="M 30,52 Q 45,64 60,52" stroke="#0f172a" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Cheeks -->
+    <circle cx="18" cy="42" r="5" fill="#f43f5e" opacity="0.6"/>
+    <circle cx="72" cy="42" r="5" fill="#f43f5e" opacity="0.6"/>
+  </g>
+
+  <!-- Floating Code Block & Laptop (Left Mid) -->
+  <g transform="translate(120, 480)">
+    <!-- Monitor Base & Screen -->
+    <rect x="0" y="0" width="160" height="110" rx="12" fill="#1e293b" stroke="#818cf8" stroke-width="3"/>
+    <rect x="10" y="10" width="140" height="90" rx="6" fill="#0f172a"/>
+    <!-- Code lines in monitor -->
+    <rect x="22" y="25" width="45" height="8" rx="4" fill="#f43f5e"/>
+    <rect x="73" y="25" width="60" height="8" rx="4" fill="#38bdf8"/>
+    <rect x="22" y="42" width="80" height="8" rx="4" fill="#34d399"/>
+    <rect x="22" y="59" width="30" height="8" rx="4" fill="#fbbf24"/>
+    <rect x="58" y="59" width="65" height="8" rx="4" fill="#a78bfa"/>
+    <rect x="22" y="76" width="55" height="8" rx="4" fill="#38bdf8"/>
+    <!-- Stand -->
+    <path d="M 60,110 L 100,110 L 110,130 L 50,130 Z" fill="#334155"/>
+    <rect x="40" y="130" width="80" height="8" rx="4" fill="#475569"/>
+  </g>
+
+  <!-- Mouse & Floating Binary (Left Bottom) -->
+  <g transform="translate(250, 780)">
+    <rect x="0" y="0" width="60" height="90" rx="30" fill="#a78bfa" opacity="0.85"/>
+    <line x1="30" y1="0" x2="30" y2="35" stroke="#4c1d95" stroke-width="2"/>
+    <circle cx="30" cy="20" r="4" fill="#fbbf24"/>
+  </g>
+  <text x="140" y="760" fill="#38bdf8" font-family="monospace" font-weight="bold" font-size="22" opacity="0.7">010101</text>
+  <text x="170" y="790" fill="#34d399" font-family="monospace" font-weight="bold" font-size="20" opacity="0.7">&lt;code/&gt;</text>
+  <text x="100" y="830" fill="#f43f5e" font-family="sans-serif" font-weight="bold" font-size="24" opacity="0.8">💻 ⌨️ 🖱️</text>
+
+  <!-- Right Side Floating Elements -->
+
+  <!-- Computer Tower / Server (Right Top) -->
+  <g transform="translate(1620, 160)">
+    <rect x="0" y="0" width="120" height="180" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/>
+    <circle cx="60" cy="35" r="14" fill="#38bdf8"/>
+    <circle cx="60" cy="35" r="6" fill="#ffffff"/>
+    <line x1="25" y1="80" x2="95" y2="80" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+    <line x1="25" y1="105" x2="95" y2="105" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+    <line x1="25" y1="130" x2="95" y2="130" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="35" cy="80" r="3" fill="#34d399"/>
+    <circle cx="35" cy="105" r="3" fill="#fbbf24"/>
+    <circle cx="35" cy="130" r="3" fill="#ec4899"/>
+  </g>
+
+  <!-- Floating Controller / Gamepad (Right Mid) -->
+  <g transform="translate(1600, 480)">
+    <rect x="0" y="0" width="150" height="90" rx="40" fill="#ec4899" opacity="0.85"/>
+    <!-- D-Pad -->
+    <rect x="25" y="38" width="30" height="10" rx="3" fill="#ffffff"/>
+    <rect x="35" y="28" width="10" height="30" rx="3" fill="#ffffff"/>
+    <!-- Action Buttons -->
+    <circle cx="105" cy="35" r="7" fill="#fbbf24"/>
+    <circle cx="123" cy="45" r="7" fill="#34d399"/>
+    <circle cx="105" cy="55" r="7" fill="#38bdf8"/>
+    <circle cx="87" cy="45" r="7" fill="#ffffff"/>
+  </g>
+
+  <!-- Scratch / Block Code Badge (Right Bottom) -->
+  <g transform="translate(1510, 720)">
+    <rect x="0" y="0" width="320" height="55" rx="14" fill="#fbbf24"/>
+    <text x="20" y="35" fill="#78350f" font-family="Arial, sans-serif" font-weight="900" font-size="22">&#x1F9E9; COMPUTACI&#xD3;N</text>
+  </g>
+  <g transform="translate(1590, 800)">
+    <rect x="0" y="0" width="390" height="55" rx="14" fill="#34d399"/>
+    <text x="20" y="35" fill="#064e3b" font-family="Arial, sans-serif" font-weight="900" font-size="22">&#x1F680; 4to a 6to de primaria</text>
+  </g>
+
+  <!-- Decorative Sparkles and Stars -->
+  <g fill="#ffffff" opacity="0.6">
+    <path d="M 450,120 L 455,135 L 470,140 L 455,145 L 450,160 L 445,145 L 430,140 L 445,135 Z"/>
+    <path d="M 1450,220 L 1453,230 L 1463,233 L 1453,236 L 1450,246 L 1447,236 L 1437,233 L 1447,230 Z"/>
+    <path d="M 850,100 L 854,112 L 866,116 L 854,120 L 850,132 L 846,120 L 834,116 L 846,112 Z"/>
+    <path d="M 1350,920 L 1354,932 L 1366,936 L 1354,940 L 1350,952 L 1346,940 L 1334,936 L 1346,932 Z"/>
+    <path d="M 500,900 L 503,910 L 513,913 L 503,916 L 500,926 L 497,916 L 487,913 L 497,910 Z"/>
+  </g>
+</svg>

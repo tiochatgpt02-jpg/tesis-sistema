@@ -1,0 +1,27 @@
+{
+  "available": false,
+  "status": "MODEL_NOT_AVAILABLE",
+  "version": null,
+  "model_type": "institutional",
+  "message": "El modelo institucional aún no ha sido entrenado. Requiere cargar el dataset histórico del colegio mediante el importador y ejecutar el pipeline.",
+  "features": [
+    "total_attempts",
+    "evaluation_count",
+    "activities_count",
+    "games_count",
+    "average_score",
+    "average_evaluation_score",
+    "average_activity_score",
+    "min_score",
+    "max_score",
+    "last_score",
+    "score_std",
+    "score_trend",
+    "total_correct_answers",
+    "total_wrong_answers",
+    "accuracy_ratio",
+    "average_time_spent_seconds",
+    "materials_reviewed_count",
+    "submissions_count"
+  ]
+}

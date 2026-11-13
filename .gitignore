@@ -1,0 +1,43 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.tmp-python/
+.logs/
+.codex-ppt-build/
+*.log
+instance/
+*.db
+*.sqlite3
+.env
+.env.*
+!.env.example
+
+# Credentials and private configuration
+*.pem
+*.key
+credentials*.json
+
+# User uploads and private school records (preserved locally)
+/static/uploads/
+/sql/postgresql/seed.sql
+/sql/postgresql/schema.sql
+/sql/postgresql/fix_users_real_contract.sql
+/ml/datasets/institutional/raw/
+
+# Historical copies, generated reports, and local tooling
+/legacy/
+/test_artifacts/
+/exports/
+/audit/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+node_modules/
+dist/
+build/
+Thumbs.db
+.DS_Store

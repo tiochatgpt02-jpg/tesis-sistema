@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: aula-computacion-tesis
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-runtime.txt
+    startCommand: python scripts/setup_db.py && gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 6 --timeout 65 app:app
+    healthCheckPath: /live
+    autoDeployTrigger: off
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: APP_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: USE_MOCK_DATA
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: AI_TIMEOUT_SECONDS
+        value: "25"
+      - key: AI_MAX_OUTPUT_TOKENS
+        value: "3000"

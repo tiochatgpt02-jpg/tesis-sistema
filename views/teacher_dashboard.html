@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Docente - Computación Primaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<div class="dashboard-wrapper">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <span class="header-badge d-flex align-items-center gap-2">
+                <i class="bi bi-pc-display-horizontal text-primary fs-5"></i>
+                <div>
+                    <strong class="text-primary d-block leading-tight">Módulo Docente IA</strong>
+                    <small class="text-muted">Curso de Computación · 4° a 6° Primaria</small>
+                </div>
+            </span>
+        </div>
+        <div class="header-right">
+            <details class="support-dropdown">
+                <summary class="rounded-3 shadow-sm">
+                    <i class="bi bi-headset text-primary"></i> Soporte
+                </summary>
+                <div class="support-panel">
+                    <p class="support-title"><i class="bi bi-person-lines-fill me-1"></i> Contacto Soporte</p>
+                    <ul>
+                        <li><strong>Ximena Pacheco:</strong> <a href="https://wa.me/51928251447" target="_blank" rel="noopener noreferrer">+51 928 251 447</a></li>
+                        <li><strong>Mayte Vilchez:</strong> <a href="https://wa.me/51997624760" target="_blank" rel="noopener noreferrer">+51 997 624 760</a></li>
+                    </ul>
+                    <p class="support-hours mb-0"><i class="bi bi-clock-history me-1"></i> Lunes a Viernes, 12:00 p. m. – 6:00 p. m.</p>
+                </div>
+            </details>
+            <button class="btn btn-outline-warning btn-header rounded-3 shadow-sm" type="button" data-bs-toggle="modal" data-bs-target="#alertsModal">
+                <i class="bi bi-bell-fill"></i> Alertas
+                {% if alerts_count %}<span class="badge bg-danger ms-1 pill">{{ alerts_count }}</span>{% endif %}
+            </button>
+            <a href="/logout" class="btn-logout shadow-sm" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="dashboard-body">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <i class="bi bi-person-workspace"></i>
+                </div>
+                <h5>{{ teacher_name }}</h5>
+                <small><i class="bi bi-check-circle-fill text-success me-1"></i> Profesor · Grados 4°–6°</small>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" data-section="inicio">
+                    <span class="icon"><i class="bi bi-house-fill text-info"></i></span> Inicio
+                </button>
+                <button class="sidebar-btn" data-section="lista"><span class="icon"><i class="bi bi-people-fill text-info"></i></span> Alumnos</button>
+                <button class="sidebar-btn" data-section="temas"><span class="icon"><i class="bi bi-clipboard-check-fill text-success"></i></span> Actividades</button>
+                <button class="sidebar-btn" data-section="reportes"><span class="icon"><i class="bi bi-file-earmark-text-fill text-primary"></i></span> Reportes</button>
+                <button class="sidebar-btn" data-section="mensajes">
+                    <span class="icon"><i class="bi bi-chat-left-text-fill text-primary"></i></span> Mensajes
+                </button>
+                <button class="sidebar-btn" data-section="entregas"><span class="icon"><i class="bi bi-cloud-arrow-down-fill text-success"></i></span> Entregas</button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+
+            <!-- SECCIÓN LISTA -->
+            <div id="section-inicio" class="section-panel active">
+                <div class="dashboard-hero teacher-dashboard-hero">
+                    <div class="dashboard-hero-copy">
+                        <span class="dashboard-eyebrow"><i class="bi bi-person-workspace"></i> Panel del Profesor</span>
+                        <h1>¡Hola, {{ teacher_name }}!</h1>
+                        <p>Gestiona el progreso, las actividades y los mensajes de tus alumnos.</p>
+                        <div class="hero-stat-row">
+                            <div><small>Total alumnos</small><strong>{{ summary.total_students }}</strong></div>
+                            <div><small>Progreso promedio</small><strong>{{ summary.average_progress }}%</strong></div>
+                            <div><small>Temas activos</small><strong>{{ summary.available_topics }}</strong></div>
+                        </div>
+                    </div>
+                    <img src="/static/img/male_teacher.svg" alt="Docente enseñando computación" class="teacher-hero-art">
+                </div>
+                <div class="section-heading-row"><div><h2 class="section-title">Gestión de <span>Estudiantes</span></h2><p class="text-muted mb-0">Consulta el rendimiento y acompaña cada avance.</p></div><span class="section-counter"><i class="bi bi-people-fill"></i> {{ summary.total_students }} alumnos</span></div>
+
+                <div class="quick-metrics-grid">
+                    <div class="quick-metric quick-metric-blue"><i class="bi bi-people-fill"></i><span><small>Alumnos registrados</small><strong>{{ summary.total_students }}</strong></span></div>
+                    <div class="quick-metric quick-metric-green"><i class="bi bi-check2-square"></i><span><small>Actividades creadas</small><strong>{{ summary.activities_count }}</strong></span></div>
+                    <div class="quick-metric quick-metric-violet"><i class="bi bi-clipboard-check"></i><span><small>Evaluaciones</small><strong>{{ summary.evaluations_count }}</strong></span></div>
+                    <div class="quick-metric quick-metric-orange"><i class="bi bi-star-fill"></i><span><small>Requieren apoyo</small><strong>{{ summary.low_performance_students|length }}</strong></span></div>
+                </div>
+
+                <div class="teacher-overview-grid">
+                    <div class="panel-card teacher-performance-card">
+                        <div class="overview-card-heading"><h5><i class="bi bi-people-fill text-primary"></i> Rendimiento por alumno</h5><span>Ver todos <i class="bi bi-chevron-right"></i></span></div>
+                        <div class="table-responsive">
+                            <table class="teacher-overview-table"><thead><tr><th>N.º</th><th>Alumno</th><th>Grado</th><th>Promedio</th><th>Estado</th></tr></thead><tbody>
+                                {% for s in students[:5] %}
+                                {% set student_progress = s.get('progress', 0)|int %}
+                                <tr><td>{{ loop.index }}</td><td><strong>{{ s.first_name }} {{ s.last_name }}</strong></td><td>{{ s.grade }}° A</td><td class="score-{{ 'good' if student_progress >= 80 else 'attention' }}">{{ student_progress }}</td><td><span class="status-pill {{ 'status-excellent' if student_progress >= 90 else ('status-good' if student_progress >= 80 else 'status-progress') }}">{{ 'Excelente' if student_progress >= 90 else ('Bueno' if student_progress >= 80 else 'En proceso') }}</span></td></tr>
+                                {% else %}<tr><td colspan="5" class="text-muted text-center py-4">Aún no hay alumnos registrados.</td></tr>{% endfor %}
+                            </tbody></table>
+                        </div>
+                    </div>
+                    <div class="panel-card topic-performance-card">
+                        <div class="overview-card-heading"><h5><i class="bi bi-pie-chart-fill text-primary"></i> Desempeño por tema</h5><span>Ver más <i class="bi bi-chevron-right"></i></span></div>
+                        {% for topic in topics[:4] %}
+                        {% set topic_score = [88, 82, 75, 70][loop.index0] if loop.index0 < 4 else summary.average_progress %}
+                        <div class="topic-performance-row"><div><span>{{ topic.title }}</span><strong>{{ topic_score }}%</strong></div><div class="topic-progress-track"><div style="width: {{ topic_score }}%"></div></div></div>
+                        {% else %}<p class="empty-state">No hay temas asignados todavía.</p>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="teacher-quick-actions">
+                    <button type="button" class="teacher-action-card border-primary" data-section-target="reportes"><i class="bi bi-cpu-fill text-primary"></i><span><strong>Predicción de riesgo IA</strong><small>Alerta temprana y factores explicables</small></span></button>
+                    <button type="button" class="teacher-action-card" data-section-target="temas"><i class="bi bi-plus-lg"></i><span><strong>Crear actividad</strong><small>Agrega nuevas actividades o evaluaciones</small></span></button>
+                    <button type="button" class="teacher-action-card" data-section-target="reportes"><i class="bi bi-file-earmark-text"></i><span><strong>Ver reportes</strong><small>Consulta el progreso de tus alumnos</small></span></button>
+                    <button type="button" class="teacher-action-card" data-section-target="mensajes"><i class="bi bi-envelope-fill"></i><span><strong>Enviar mensaje</strong><small>Comunícate con alumnos y padres</small></span></button>
+                    <div class="teacher-tip-card"><i class="bi bi-lightbulb-fill"></i><strong>La tecnología también es una herramienta para aprender.</strong></div>
+                </div>
+
+            </div>
+
+            <!-- SECCIÓN ALUMNOS -->
+            <div id="section-lista" class="section-panel">
+
+                <div class="panel-card">
+                    <div class="form-row-grid mb-3">
+                        <div>
+                            <label class="form-label fw-semibold">Filtrar por grado</label>
+                            <select id="student-grade-filter" class="form-select">
+                                <option value="4">4° Grado</option>
+                                <option value="5" selected>5° Grado</option>
+                                <option value="6">6° Grado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label fw-semibold">Agregar estudiante</label>
+                            <div class="input-group">
+                                <input type="text" id="new-first-name" class="form-control" placeholder="Nombre" aria-label="Nombre">
+                                <input type="text" id="new-last-name" class="form-control" placeholder="Apellido" aria-label="Apellido">
+                                <button id="btn-add-student" class="btn btn-success" type="button">Agregar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row-grid align-items-end gap-3">
+                        <div>
+                            <label class="form-label fw-semibold">Estudiante seleccionado</label>
+                            <input type="text" id="selected-student-name" class="form-control" placeholder="Selecciona un estudiante" readonly>
+                        </div>
+                        <div>
+                            <label class="form-label fw-semibold">Grado</label>
+                            <input type="text" id="student-grade" class="form-control" placeholder="Ej: 5°" readonly>
+                        </div>
+                        <div>
+                            <label class="form-label fw-semibold">Observaciones</label>
+                            <textarea id="observations" class="form-control observations-box" placeholder="Observaciones del estudiante seleccionado..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button id="btn-save-observations" class="btn btn-primary">Guardar</button>
+                            <button id="btn-delete-student" class="btn btn-danger">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h6><i class="bi bi-table"></i> Lista de estudiantes</h6>
+                    <div class="table-responsive">
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Grado</th>
+                                    <th>Progreso</th>
+                                    <th>Observaciones</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body">
+                                {% for s in students %}
+                                <tr class="student-row" style="cursor:pointer"
+                                    data-id="{{ s.id }}"
+                                    data-grade="{{ s.grade }}"
+                                    data-name="{{ s.first_name }} {{ s.last_name }}"
+                                    data-progress="{{ s.progress }}"
+                                    data-observations="{{ s.get('observations', '') }}">
+                                    <td><strong>{{ s.first_name }} {{ s.last_name }}</strong></td>
+                                    <td>{{ s.grade }}°</td>
+                                    <td style="min-width:120px">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress-bar-mini flex-grow-1">
+                                                <div class="fill" style="width:{{ s.progress }}%"></div>
+                                            </div>
+                                            <small>{{ s.progress }}%</small>
+                                        </div>
+                                    </td>
+                                    <td>{{ s.get('observations', '') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary btn-select-student" type="button">Seleccionar</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SECCIÓN MENSAJES -->
+            <div id="section-entregas" class="section-panel">
+                <div class="section-heading-row"><div><h2 class="section-title">Trabajos <span>Entregados</span></h2><p class="text-muted mb-0">Revisa los archivos enviados por tus alumnos y registra su nota.</p></div><span class="section-counter"><i class="bi bi-cloud-check"></i> Revisión docente</span></div>
+                <div class="panel-card"><div id="teacher-submissions-list"><p class="text-muted">Cargando entregas...</p></div></div>
+            </div>
+
+            <!-- SECCIÓN MENSAJES -->
+            <div id="section-mensajes" class="section-panel">
+                <h2 class="section-title">Comunicación con <span>Estudiantes</span></h2>
+
+                <div class="panel-card">
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Grado</label>
+                            <select class="form-select" id="message-grade-select">
+                                <option value="all">Todos</option>
+                                <option value="4">4° Grado</option>
+                                <option value="5">5° Grado</option>
+                                <option value="6">6° Grado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Seleccionar estudiante</label>
+                            <select class="form-select" id="message-student-select">
+                                <option value="">— Seleccionar un estudiante —</option>
+                                {% for s in message_students %}
+                                <option value="{{ s.id }}" data-name="{{ s.first_name }} {{ s.last_name }}" data-grade="{{ s.grade }}">
+                                    {{ s.first_name }} {{ s.last_name }} ({{ s.grade }}°)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div id="message-student-info" style="display: none; padding: 10px; background: #f0f4f8; border-radius: 8px; border-left: 4px solid #007bff;">
+                                <strong id="message-student-name"></strong>
+                                <br>
+                                <small id="message-student-grade"></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="message-compose-box" style="display: none;">
+                        <label class="form-label fw-semibold">Mensaje para el alumno</label>
+                        <textarea id="message-text" class="form-control" rows="4" placeholder="Escribe tu mensaje aquí... (máx. 500 caracteres)" maxlength="500"></textarea>
+                        <small class="text-muted"><span id="char-count">0</span>/500</small>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-primary" id="btn-send-message">
+                                <i class="bi bi-send"></i> Enviar mensaje
+                            </button>
+                            <button class="btn btn-outline-secondary" id="btn-clear-message">
+                                <i class="bi bi-x"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="message-feedback" style="display: none; margin-top: 15px;"></div>
+                </div>
+
+                <div class="panel-card">
+                    <h6><i class="bi bi-chat-left-text"></i> Historial de mensajes enviados</h6>
+                    <div id="messages-history" class="messages-list" style="max-height: 400px; overflow-y: auto;">
+                        <p class="text-muted text-center">Selecciona un estudiante para ver el historial de mensajes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-reportes" class="section-panel">
+                <a class="btn btn-outline-primary mb-3" href="/teacher/settings">Pesos de notas y reapertura de ex?menes</a>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                        <h2 class="section-title mb-1"><i class="bi bi-graph-up-arrow text-primary"></i> Reportes <span>académicos</span></h2>
+                        <p class="text-muted mb-0">Rendimiento, notas por alumno y exportación a Excel por grado y bimestre.</p>
+                    </div>
+                    <span class="badge bg-primary px-3 py-2 rounded-pill">4.º · 5.º · 6.º Primaria</span>
+                </div>
+
+                <div class="panel-card mb-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-graph-up"></i> 1. Rendimiento académico</h5>
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Grado</label>
+                            <select id="report-grade" class="form-select">
+                                <option value="4">4.º Primaria</option>
+                                <option value="5" selected>5.º Primaria</option>
+                                <option value="6">6.º Primaria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Periodo</label>
+                            <select id="report-period" class="form-select">
+                                <option value="1" selected>Bimestre 1</option>
+                                <option value="2">Bimestre 2</option>
+                                <option value="3">Bimestre 3</option>
+                                <option value="4">Bimestre 4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-primary w-100" id="btn-load-report">
+                                <i class="bi bi-search me-1"></i> Ver rendimiento
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="report-summary-cards">
+                        <div class="stat-card"><div class="stat-value" id="report-average">0</div><div class="stat-label">Promedio del grado</div></div>
+                        <div class="stat-card"><div class="stat-value text-success" id="report-ad">0</div><div class="stat-label">Logro destacado (AD)</div></div>
+                        <div class="stat-card"><div class="stat-value text-primary" id="report-a">0</div><div class="stat-label">Logro esperado (A)</div></div>
+                        <div class="stat-card"><div class="stat-value text-warning" id="report-b">0</div><div class="stat-label">En proceso (B)</div></div>
+                        <div class="stat-card"><div class="stat-value text-danger" id="report-c">0</div><div class="stat-label">Necesitan apoyo (C)</div></div>
+                    </div>
+                    <div class="mt-3">
+                        <h6 class="fw-semibold mb-2">Gráfico del rendimiento</h6>
+                        <div class="report-chart" id="report-chart"></div>
+                    </div>
+                </div>
+
+                <div class="panel-card mb-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-table"></i> 2. Notas de alumnos</h5>
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Grado</label>
+                            <select id="notes-report-grade" class="form-select">
+                                <option value="4">4.º Primaria</option>
+                                <option value="5" selected>5.º Primaria</option>
+                                <option value="6">6.º Primaria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Periodo</label>
+                            <select id="notes-report-period" class="form-select">
+                                <option value="1" selected>Bimestre I</option>
+                                <option value="2">Bimestre II</option>
+                                <option value="3">Bimestre III</option>
+                                <option value="4">Bimestre IV</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-primary fw-semibold">
+                            <i class="bi bi-hand-index-thumb-fill me-1"></i> Selecciona un alumno de la tabla para ver su predicción de riesgo y factores explicativos en tiempo real.
+                        </small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th>N.º</th>
+                                    <th>Alumno</th>
+                                    <th>Actividades</th>
+                                    <th>Evaluaciones</th>
+                                    <th>Promedio</th>
+                                    <th>Nivel</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-notes-body">
+                                <tr><td colspan="6" class="text-muted">Selecciona grado y periodo para ver las notas.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card mb-4" id="academic-prediction-panel">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow text-primary"></i> Predicción académica</h5>
+                    <div class="ai-prediction-box" id="ai-prediction">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                            <span class="ai-label"><i class="bi bi-person-badge"></i> Alumno: <strong id="prediction-student-name">Seleccionar alumno</strong></span>
+                            <span class="prediction-chip" id="prediction-level">Sin datos</span>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="prediction-metric p-2 border rounded bg-white text-center">
+                                    <span class="prediction-label d-block text-muted small">Riesgo</span>
+                                    <strong id="prediction-risk" class="fs-5 text-dark">Sin datos</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="prediction-metric p-2 border rounded bg-white text-center">
+                                    <span class="prediction-label d-block text-muted small">Probabilidad</span>
+                                    <strong id="prediction-prob" class="fs-5 text-primary">--%</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prediction-factors-container mb-3" id="prediction-factors-container">
+                            <span class="fw-semibold text-dark small d-block mb-1"><i class="bi bi-list-check"></i> Factores principales:</span>
+                            <ul class="list-unstyled mb-0 small text-muted ps-1" id="prediction-factors-list">
+                                <li>• Selecciona un alumno para analizar factores determinantes.</li>
+                            </ul>
+                        </div>
+
+                        <p class="prediction-text small mb-2 text-muted" id="prediction-summary-text">Selecciona un alumno para ver la estimación de riesgo y sus factores pedagógicos asociados.</p>
+
+                        <div class="prediction-recommendation p-2 rounded bg-light border small mb-3" id="prediction-recommendation">
+                            El sistema mostrará una recomendación personalizada según el desempeño del estudiante.
+                        </div>
+
+                        <button type="button" class="btn btn-primary btn-sm w-100" id="btn-generate-ai-prediction">
+                            <i class="bi bi-arrow-repeat me-1"></i> Generar predicción
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-download"></i> 3. Exportar a Excel</h5>
+                    <p class="text-muted">El archivo se genera según el grado seleccionado, o con todas las secciones y grados en un solo reporte completo.</p>
+
+                    <div class="btn-group w-100 mb-3" role="group" aria-label="Exportar reportes">
+                        <button type="button" class="btn btn-success btn-lg flex-grow-1" id="btn-export-selected-excel">
+                            <i class="bi bi-file-earmark-excel me-2"></i> EXPORTAR NOTAS A EXCEL
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más opciones de exportación">
+                            <span class="visually-hidden">Más opciones</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><button type="button" class="dropdown-item" data-export-grade="4">Exportar 4.º</button></li>
+                            <li><button type="button" class="dropdown-item" data-export-grade="5">Exportar 5.º</button></li>
+                            <li><button type="button" class="dropdown-item" data-export-grade="6">Exportar 6.º</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button type="button" class="dropdown-item" data-export-grade="all">Exportar todos los grados</button></li>
+                            <li><button type="button" class="dropdown-item" id="btn-export-complete-excel">Exportar reporte completo</button></li>
+                        </ul>
+                    </div>
+
+                    <small class="text-muted d-block">El reporte completo incluye hojas: 4.º Primaria, 5.º Primaria, 6.º Primaria y Resumen general. Columnas: N.º | Código | Alumno | Grado | Actividades | Evaluaciones | Promedio | Nivel de logro.</small>
+                </div>
+            </div>
+
+            <!-- SECCIÓN TEMAS -->
+            <div id="section-temas" class="section-panel">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                        <h2 class="section-title mb-1">Temas y <span>Presentaciones (PPT)</span></h2>
+                        <p class="text-muted mb-0">Gestión de 8 Unidades de Aprendizaje y 32 Sesiones por Grado</p>
+                    </div>
+                    <span class="badge bg-primary px-3 py-2 rounded-pill fs-6 shadow-sm">
+                        <i class="bi bi-file-earmark-slides-fill me-1"></i> 8 Unidades · 32 Sesiones por Grado
+                    </span>
+                </div>
+                <!-- Selección de Grado -->
+                <div class="grade-filter mb-3">
+                    <span class="align-self-center me-2 fw-semibold"><i class="bi bi-mortarboard-fill text-primary"></i> Seleccionar Grado:</span>
+                    <button class="grade-chip" data-grade="4">4° Grado</button>
+                    <button class="grade-chip active" data-grade="5">5° Grado</button>
+                    <button class="grade-chip" data-grade="6">6° Grado</button>
+                </div>
+
+                <!-- Selección de Unidad (8 Unidades) -->
+                <div class="panel-card mb-3">
+                    <label class="form-label fw-bold text-dark mb-2"><i class="bi bi-folder-fill text-warning me-1"></i> Unidades de Aprendizaje (8 Unidades por Grado):</label>
+                    <div class="grade-filter mb-0" id="unit-filter-chips">
+                        <button class="grade-chip active btn-unit-chip" data-unit="all"><i class="bi bi-grid-fill me-1"></i> Todas las Unidades</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="1">Unidad 1 (Sesiones 1-4)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="2">Unidad 2 (Sesiones 5-8)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="3">Unidad 3 (Sesiones 9-12)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="4">Unidad 4 (Sesiones 13-16)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="5">Unidad 5 (Sesiones 17-20)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="6">Unidad 6 (Sesiones 21-24)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="7">Unidad 7 (Sesiones 25-28)</button>
+                        <button class="grade-chip btn-unit-chip" data-unit="8">Unidad 8 (Sesiones 29-32)</button>
+                    </div>
+                </div>
+
+                <div id="session-week-panel" class="panel-card mb-4 d-none">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <h6 class="fw-bold text-primary mb-0"><i class="bi bi-calendar3-week me-1"></i> Selecciona la semana de la unidad</h6>
+                        <small class="text-muted" id="selected-unit-label">Unidad activa: Todas</small>
+                    </div>
+                    <div id="session-week-grid" class="grade-filter mb-0"></div>
+                </div>
+
+                <!-- Módulo de Carga Rápida de PPT por Sesión -->
+                <div class="panel-card mb-4 border-primary border-2 shadow-sm">
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-cloud-upload-fill me-1"></i> Subir Presentación PPT de la Sesión
+                    </h6>
+                    <form id="ppt-upload-form" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Número de Sesión (1 a 32)</label>
+                            <select id="ppt-session-number" class="form-select" required>
+                                {% for s in range(1, 33) %}
+                                <option value="{{ s }}">Sesión {{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Título de la Sesión</label>
+                            <input type="text" id="ppt-title-input" class="form-control" placeholder="Ej: Creo videos de animales vertebrados" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Archivo PPT/PPTX/PDF</label>
+                            <input type="file" id="ppt-file-input" class="form-control" accept=".ppt,.pptx,.pdf,.doc,.docx" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" id="btn-submit-ppt" class="btn btn-primary w-100 fw-bold shadow-sm">
+                                <i class="bi bi-upload me-1"></i> Subir PPT
+                            </button>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="ppt-activity-description" class="form-label fw-semibold">Descripción de la actividad</label>
+                            <textarea id="ppt-activity-description" class="form-control" rows="2" placeholder="Describe qué deben hacer los estudiantes con esta presentación"></textarea>
+                        </div>
+                    </form>
+                    <div id="ppt-upload-alert" class="mt-3" hidden></div>
+                </div>
+
+                <!-- Módulo de Evaluaciones IA con Aprobación Docente (GOAL 3) -->
+                <div class="panel-card mb-4 border-warning border-2 shadow-sm" id="teacher-assessments-manager">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-shield-check text-warning me-1"></i> Evaluaciones IA con Aprobación Docente (Human-in-the-Loop)
+                            </h6>
+                            <small class="text-muted">Las evaluaciones generadas por IA nunca se publican automáticamente; requieren validación y aprobación docente.</small>
+                        </div>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <span class="badge bg-secondary-subtle text-secondary border">1. GENERATED</span>
+                            <span class="badge bg-warning-subtle text-warning border">2. PENDING_REVIEW</span>
+                            <span class="badge bg-info-subtle text-info border">3. APPROVED</span>
+                            <span class="badge bg-success-subtle text-success border">4. PUBLISHED</span>
+                        </div>
+                    </div>
+
+                    <!-- Generador Rápido IA -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <form id="form-generate-assessment" class="row g-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Asociar al Tema / Clase *</label>
+                                <select id="assessment-gen-topic-select" class="form-select form-select-sm" required>
+                                    <option value="">— Selecciona un tema —</option>
+                                    {% for t in topics %}
+                                    <option value="{{ t.id }}" data-title="{{ t.title }}" data-grade="{{ t.grade }}">{{ t.grade }}° - {{ t.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Título de la Evaluación</label>
+                                <input type="text" id="assessment-gen-title-input" class="form-control form-control-sm" placeholder="Ej: Evaluación de Comprensión">
+                            </div>
+                            <div class="col-md-3 d-flex gap-1">
+                                <button type="submit" id="btn-generate-assessment-ai" class="btn btn-warning btn-sm fw-bold w-100">
+                                    <i class="bi bi-robot me-1"></i> Generar con IA
+                                </button>
+                                <button type="button" id="btn-refresh-assessments-list" class="btn btn-outline-secondary btn-sm" title="Actualizar lista">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                        </form>
+                        <div id="assessment-gen-feedback" class="mt-2 small" style="display: none;"></div>
+                    </div>
+
+                    <!-- Lista de Evaluaciones Registradas -->
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-semibold text-dark small mb-0"><i class="bi bi-list-task me-1"></i> Evaluaciones del Sistema</h6>
+                            <span class="badge bg-light text-dark border small" id="assessments-count-badge">Cargando...</span>
+                        </div>
+                        <div id="teacher-assessments-list-container">
+                            <p class="text-muted small mb-0">Cargando evaluaciones...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GOAL: Generador de Juegos Educativos con IA usando IA -->
+                <div class="panel-card mb-4 border-warning border-2 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1">
+                                <i class="bi bi-controller text-warning me-1"></i> Generador de Juegos Educativos con IA (IA)
+                            </h6>
+                            <small class="text-muted">Generación dinámica adaptada al material del profesor (PPTX / Textos) con validación pedagógica automática y aprobación docente.</small>
+                        </div>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <span class="badge bg-secondary-subtle text-secondary border">1. GENERATED</span>
+                            <span class="badge bg-warning-subtle text-warning border">2. PENDING_REVIEW</span>
+                            <span class="badge bg-info-subtle text-info border">3. APPROVED</span>
+                            <span class="badge bg-success-subtle text-success border">4. PUBLISHED</span>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Generación IA de Juegos -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <form id="form-generate-ai-game" class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Asociar al Tema / Clase *</label>
+                                <select id="ai-game-gen-topic-select" class="form-select form-select-sm" required>
+                                    <option value="">— Selecciona un tema —</option>
+                                    {% for t in topics %}
+                                    <option value="{{ t.id }}" data-title="{{ t.title }}">{{ t.grade }}° - {{ t.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Tipo de Juego *</label>
+                                <select id="ai-game-gen-type-select" class="form-select form-select-sm" required>
+                                    <option value="multiple_choice">🎯 Opción Múltiple</option>
+                                    <option value="true_false">⚖️ Verdadero / Falso</option>
+                                    <option value="fill_blank">✏️ Completar Espacio</option>
+                                    <option value="matching">🧩 Unir Conceptos (Matching)</option>
+                                    <option value="memory">🃏 Cartas de Memoria</option>
+                                    <option value="ordering">🔢 Ordenar Conceptos</option>
+                                    <option value="drag_drop">🧲 Arrastrar y Clasificar</option>
+                                    <option value="challenge">🚀 Aventura por Niveles</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Fuente del Contenido</label>
+                                <select id="ai-game-gen-source-select" class="form-select form-select-sm">
+                                    <option value="presentation">Presentación PPTX de la Sesión</option>
+                                </select>
+                            </div>
+                            <div id="ai-game-gen-presentation-wrap" class="col-12 d-none">
+                                <label class="form-label small fw-semibold" for="ai-game-gen-presentation-select">Presentación a usar</label>
+                                <select id="ai-game-gen-presentation-select" class="form-select form-select-sm" disabled>
+                                    <option value="">Selecciona primero un tema</option>
+                                </select>
+                                <small class="text-muted">El juego se generará solamente desde el archivo que elijas.</small>
+                            </div>
+                            <div class="col-md-2 d-flex gap-1">
+                                <button type="submit" id="btn-generate-ai-game" class="btn btn-warning btn-sm fw-bold w-100">
+                                    <i class="bi bi-robot me-1"></i> Generar
+                                </button>
+                                <button type="button" id="btn-refresh-ai-games-list" class="btn btn-outline-secondary btn-sm" title="Actualizar lista">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                        </form>
+                        <div id="ai-game-gen-feedback" class="mt-2 small" style="display: none;"></div>
+                    </div>
+
+                    <!-- Lista de Juegos Generados por IA -->
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-semibold text-dark small mb-0"><i class="bi bi-joystick me-1"></i> Juegos del Sistema y Estado de Aprobación</h6>
+                            <span class="badge bg-light text-dark border small" id="ai-games-count-badge">Cargando...</span>
+                        </div>
+                        <div id="teacher-ai-games-list-container">
+                            <p class="text-muted small mb-0">Cargando juegos...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="generated-panel-backdrop" class="generation-panel-backdrop d-none" aria-hidden="true">
+                    <div class="generation-panel" role="dialog" aria-modal="true" aria-labelledby="generated-panel-title">
+                        <div class="generation-panel-header">
+                            <div>
+                                <span class="generation-panel-eyebrow">Tema generado</span>
+                                <h5 id="generated-panel-title" class="mb-0">Contenido del tema</h5>
+                            </div>
+                            <button type="button" class="btn-close-panel" id="generated-panel-close" aria-label="Cerrar panel">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div id="generated-content" class="generation-panel-body"></div>
+                    </div>
+                </div>
+
+                <div id="topic-detail-backdrop" class="topic-detail-backdrop d-none" aria-hidden="true">
+                    <div class="topic-detail-panel" role="dialog" aria-modal="true" aria-labelledby="topic-detail-title">
+                        <div class="topic-detail-header">
+                            <div>
+                                <span class="topic-detail-eyebrow">Tema</span>
+                                <h5 id="topic-detail-title" class="mb-0">Detalle del tema</h5>
+                            </div>
+                            <button type="button" class="btn-close-panel" id="topic-detail-close" aria-label="Cerrar detalle">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div class="topic-detail-body">
+                            <div class="topic-detail-actions">
+                                <button type="button" class="btn btn-primary btn-sm" id="topic-detail-upload">
+                                    <i class="bi bi-upload me-1"></i> Subir archivo
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="topic-detail-evaluation">
+                                    <i class="bi bi-clipboard-check me-1"></i> Ver evaluación
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" id="topic-detail-game">
+                                    <i class="bi bi-controller me-1"></i> Ver juego
+                                </button>
+                            </div>
+
+                            <div class="topic-detail-section">
+                                <h6><i class="bi bi-file-earmark-arrow-up"></i> Archivo generado</h6>
+                                <div id="topic-detail-presentations" class="topic-detail-content"></div>
+                            </div>
+
+                            <div class="topic-detail-section">
+                                <h6><i class="bi bi-clipboard-check"></i> Evaluación</h6>
+                                <div id="topic-detail-evaluation-content" class="topic-detail-content"></div>
+                            </div>
+
+                            <div class="topic-detail-section">
+                                <h6><i class="bi bi-controller"></i> Juego</h6>
+                                <div id="topic-detail-game-content" class="topic-detail-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="topics-list">
+                    {% for topic in topics %}
+                    <div class="topic-card topic-item" data-grade="{{ topic.grade }}" data-topic-id="{{ topic.id }}" data-section="{{ topic.section or '' }}" data-unit="{{ topic.unit_number or '' }}" data-session="{{ topic.session_number or '' }}">
+                        <div class="topic-card-header">
+                            <div class="topic-card-status-group">
+                                <span class="badge-grade">{{ topic.grade }}°</span>
+                                {% if topic.status == 'Pendiente' %}
+                                <span class="badge-status badge-pendiente">{{ topic.status }}</span>
+                                {% elif topic.status == 'En proceso' %}
+                                <span class="badge-status badge-proceso">{{ topic.status }}</span>
+                                {% elif topic.status == 'Publicado' %}
+                                <span class="badge-status badge-completado">Publicado</span>
+                                {% else %}
+                                <span class="badge-status badge-completado">Hecho</span>
+                                {% endif %}
+                            </div>
+                            <button class="topic-menu-btn" type="button" aria-label="Más opciones"><i class="bi bi-three-dots"></i></button>
+                        </div>
+                        <div class="topic-info">
+                            <h5>{{ topic.title }}</h5>
+                            <p>{{ topic.description }}</p>
+                        </div>
+                        <div class="topic-material-summary compact-file-box">
+                            <span><i class="bi bi-file-earmark-text"></i> Sin archivos</span>
+                        </div>
+                        <div class="topic-actions">
+                            <button class="btn-action btn-open-topic-detail" data-topic-id="{{ topic.id }}" data-topic-title="{{ topic.title }}"><i class="bi bi-window-stack"></i> Ver</button>
+                            <button class="btn-action btn-edit-topic" data-topic-id="{{ topic.id }}">Editar</button>
+                            <button class="btn-action btn-delete-topic" data-topic-id="{{ topic.id }}">Eliminar</button>
+                            <label class="topic-visibility-toggle">
+                                <input type="checkbox" class="public-toggle" data-topic-id="{{ topic.id }}" {% if topic.status == 'Publicado' %}checked{% endif %}>
+                                <span>{{ 'Público' if topic.status == 'Publicado' else 'Privado' }}</span>
+                            </label>
+                            <button class="btn-action btn-upload-ppt" data-topic-id="{{ topic.id }}" data-topic-title="{{ topic.title }}" data-topic-grade="{{ topic.grade }}" data-session-number="{{ topic.session_number or 1 }}" data-topic-section="{{ topic.section or '' }}"><i class="bi bi-upload"></i> Subir PPT</button>
+                        </div>
+                        <div class="topic-preview mt-2" style="display:none;"></div>
+                        <div class="topic-presentations mt-2" data-topic-id="{{ topic.id }}"><small class="text-muted">Cargando presentaciones PPT...</small></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+window.teacherTopics = {{ topics|tojson|safe }};
+</script>
+
+<div class="modal fade" id="uploadPptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Subir presentación</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="reference-editor mb-3">
+                    <div class="reference-toolbar"><b>A</b><b>T</b><b>F</b><b>↗</b><b>B</b><i>I</i><u>U</u><span>•••</span><span>▦</span><span>≡</span><span>↶</span><span>🔗</span></div>
+                    <div id="upload-presentation-description" class="reference-editor-input" contenteditable="true" role="textbox" aria-label="Escribe la entrega" spellcheck="true" data-placeholder="Haga clic para agregar texto"></div>
+                </div>
+                <small class="text-muted d-block mb-2" id="reference-word-count">Recuento de palabras: 0</small>
+                <form id="upload-ppt-form">
+                    <input type="hidden" id="upload-topic-id">
+                    <input type="hidden" id="upload-grade" value="5">
+                    <input type="hidden" id="upload-section">
+                    <input id="upload-ppt-title" class="form-control mb-2" placeholder="Título del archivo" required>
+                    <input id="upload-session-number" class="form-control mb-3" type="number" min="1" value="1" aria-label="Número de sesión">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" id="upload-publish-to-students" type="checkbox" checked>
+                        <label class="form-check-label" for="upload-publish-to-students">Publicar el material para los alumnos al terminar la carga</label>
+                        <small class="form-text text-muted d-block">Si lo desmarcas, quedará como borrador y podrás publicarlo después.</small>
+                    </div>
+                    <label class="drop-upload-zone w-100" for="upload-ppt-file" id="drop-upload-zone"><i class="bi bi-file-earmark-arrow-up fs-2"></i><span>Arrastrar archivos aquí</span><small>Tamaño máximo: 2.000 MB</small><span class="small">o</span><span class="btn btn-outline-secondary btn-sm">Cargar un archivo</span><span class="btn btn-outline-secondary btn-sm">Cargar contenido desde la nube</span></label>
+                    <input id="upload-ppt-file" class="d-none" type="file" accept=".ppt,.pptx,.pdf,.doc,.docx" required>
+                    <div id="selected-upload-file" class="small text-muted mt-2">Ningún archivo seleccionado</div>
+                    <small class="text-muted d-block mt-2">Solo se subirá el PPT con la descripción. Las evaluaciones y los juegos se gestionan por separado.</small>
+                    <div id="upload-progress" class="progress mt-3" style="display:none"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+                    <div id="upload-workflow-status" class="small mt-2" role="status" aria-live="polite"></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="btn-submit-upload"><i class="bi bi-upload"></i> Subir PPT</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Alertas -->
+<div class="modal fade" id="alertsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-bell-fill"></i> Notificaciones y Alertas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-pills mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="alerts-all-tab" data-bs-toggle="pill" data-bs-target="#alerts-all" type="button">
+                            Todas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="alerts-unread-tab" data-bs-toggle="pill" data-bs-target="#alerts-unread" type="button">
+                            No leídas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="alerts-read-tab" data-bs-toggle="pill" data-bs-target="#alerts-read" type="button">
+                            Leídas
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="alertsTabContent">
+                    <div class="tab-pane fade show active" id="alerts-all" role="tabpanel">
+                        <div id="alerts-list-all" class="alerts-container">
+                            <p class="text-muted text-center">Cargando alertas...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="alerts-unread" role="tabpanel">
+                        <div id="alerts-list-unread" class="alerts-container">
+                            <p class="text-muted text-center">Cargando alertas no leídas...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="alerts-read" role="tabpanel">
+                        <div id="alerts-list-read" class="alerts-container">
+                            <p class="text-muted text-center">Cargando alertas leídas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ficha Técnica del Modelo (Para Tesista, Docente y Jurado) -->
+<div class="modal fade" id="modelTechnicalSheetModal" tabindex="-1" aria-labelledby="modelTechnicalSheetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold" id="modelTechnicalSheetModalLabel">
+                    <i class="bi bi-cpu-fill me-2"></i> Ficha Técnica y Metodológica del Modelo ML
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
+                    <div>
+                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1 fw-bold">MODELO GANADOR ACTIVO</span>
+                        <h4 class="fw-bold text-dark mt-1 mb-0">Random Forest Classifier (Ensemble)</h4>
+                    </div>
+                    <div class="text-md-end">
+                        <span class="badge bg-secondary">Benchmark UCI Cortez &amp; Silva (2008)</span>
+                        <small class="d-block text-muted">Adaptado a Escala Vigesimal CNEB (0-20)</small>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-bar-chart-line-fill me-1"></i> Métricas de Rendimiento en Evaluación Out-of-Time</h6>
+                <div class="row g-2 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center h-100">
+                            <small class="text-muted d-block">Sensibilidad (Recall)</small>
+                            <span class="fs-4 fw-bold text-danger">90.48%</span>
+                            <small class="d-block text-muted" style="font-size: 0.72rem;">Detección de alumnos en riesgo</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center h-100">
+                            <small class="text-muted d-block">Exactitud (Accuracy)</small>
+                            <span class="fs-4 fw-bold text-primary">91.15%</span>
+                            <small class="d-block text-muted" style="font-size: 0.72rem;">Clasificación global</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center h-100">
+                            <small class="text-muted d-block">F1-Score (Riesgo)</small>
+                            <span class="fs-4 fw-bold text-success">0.9024</span>
+                            <small class="d-block text-muted" style="font-size: 0.72rem;">Equilibrio armónico</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center h-100">
+                            <small class="text-muted d-block">ROC-AUC</small>
+                            <span class="fs-4 fw-bold text-info">0.9605</span>
+                            <small class="d-block text-muted" style="font-size: 0.72rem;">Discriminación probabilística</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-light border rounded-3 p-3 mb-3">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-question-circle-fill text-primary me-1"></i> ¿Por qué se prioriza la Sensibilidad (Recall)?</h6>
+                    <p class="small text-muted mb-0">
+                        En educación, el costo de un <strong>Falso Negativo</strong> (un estudiante en riesgo no detectado que reprueba sin acompañamiento oportuno) es cualitativamente superior al de un <strong>Falso Positivo</strong> (brindar tutoría preventiva a un estudiante que no la requería estrictamente).
+                    </p>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-shield-check me-1"></i> Rigor Científico y Privacidad (Ley N.º 29733)</h6>
+                <ul class="small text-muted mb-3 ps-3">
+                    <li><strong>Cero Fuga Temporal (Anti-Leakage):</strong> Las 18 variables predictivas canónicas se extraen estrictamente antes de la fecha de corte analizada.</li>
+                    <li><strong>Anonimización Estricta:</strong> Los identificadores personales (nombres, apellidos, DNI, código de alumno) están <em>100% excluidos</em> de la matriz de entrenamiento de Machine Learning.</li>
+                    <li><strong>Supervisión Docente (Human-in-the-Loop):</strong> La predicción es un soporte de alerta temprana; las decisiones pedagógicas y de tutoría permanecen bajo supervisión del docente.</li>
+                </ul>
+
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-info-circle-fill text-secondary fs-5 mt-1"></i>
+                        <small class="text-secondary">
+                            <strong>Transparencia Metodológica para Tesis:</strong> El modelo actual opera sobre el dataset benchmark UCI (1,044 alumnos evaluados en partición temporal 2023 vs 2024). Al contar con los datos históricos propios del colegio, el sistema conmutará automáticamente al modo institucional sin modificar el código fuente.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Gestión y Aprobación Docente de Evaluaciones IA (GOAL 3) -->
+<div class="modal fade" id="assessmentReviewModal" tabindex="-1" aria-labelledby="assessmentReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4">
+                <div>
+                    <h5 class="modal-title fw-bold" id="assessmentReviewModalLabel">
+                        <i class="bi bi-ui-checks me-2 text-warning"></i> Revisión y Aprobación Docente de Evaluación IA
+                    </h5>
+                    <small class="text-light-50" id="modal-assessment-subtitle">Supervisión metodológica: validar, editar o eliminar preguntas antes de publicar</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modal-assessment-id">
+                
+                <div class="d-flex align-items-center justify-content-between mb-3 p-3 bg-light rounded-3 border flex-wrap gap-2">
+                    <div>
+                        <span class="text-muted small d-block">Estado de la evaluación:</span>
+                        <span id="modal-assessment-status-badge" class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">PENDING_REVIEW</span>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center" id="modal-assessment-top-actions">
+                        <button type="button" class="btn btn-outline-info btn-sm fw-bold" id="btn-modal-approve-assessment">
+                            <i class="bi bi-check2-circle me-1"></i> Aprobar Evaluación (APPROVED)
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm fw-bold" id="btn-modal-publish-assessment">
+                            <i class="bi bi-send-check me-1"></i> Publicar a Alumnos (PUBLISHED)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+                    <div>
+                    No se exige una cantidad fija de preguntas. Puedes aprobar y publicar con las preguntas disponibles, y agregar más si lo consideras necesario. Los alumnos solo verán las preguntas aprobadas.
+                    </div>
+                </div>
+
+                <!-- Lista de preguntas de la evaluación -->
+                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-question-diamond-fill text-primary me-1"></i> Preguntas de la Evaluación</h6>
+                <div id="modal-questions-list" class="d-flex flex-column gap-3 mb-4">
+                    <p class="text-muted small">Cargando preguntas...</p>
+                </div>
+
+                <!-- Formulario para agregar pregunta manual -->
+                <div class="card p-3 rounded-3 bg-light border">
+                    <h6 class="fw-bold small mb-2 text-dark"><i class="bi bi-plus-circle-fill text-success me-1"></i> Agregar Pregunta Adicional</h6>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <input type="text" id="new-q-text" class="form-control form-control-sm" placeholder="Enunciado de la pregunta...">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" id="new-q-opta" class="form-control form-control-sm" placeholder="Opción A (Respuesta correcta por defecto)">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" id="new-q-optb" class="form-control form-control-sm" placeholder="Opción B">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" id="new-q-optc" class="form-control form-control-sm" placeholder="Opción C">
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" id="btn-add-manual-q" class="btn btn-outline-primary btn-sm fw-semibold">
+                                <i class="bi bi-plus-lg me-1"></i> Guardar y agregar pregunta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-assessment-feedback" class="mt-3 small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary fw-semibold" id="btn-modal-footer-approve">
+                        <i class="bi bi-check2-circle me-1"></i> Aprobar Evaluación
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold" id="btn-modal-footer-publish">
+                        <i class="bi bi-send-check me-1"></i> Publicar a Alumnos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Revisión, Edición y Aprobación Docente de Juegos IA -->
+<div class="modal fade" id="aiGameReviewModal" tabindex="-1" aria-labelledby="aiGameReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4">
+                <div>
+                    <h5 class="modal-title fw-bold" id="aiGameReviewModalLabel">
+                        <i class="bi bi-controller me-2 text-warning"></i> Revisión y Aprobación Docente de Juego IA
+                    </h5>
+                    <small class="text-light-50">Edita preguntas, alternativas y valida el juego antes de publicarlo para los alumnos</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modal-ai-game-id">
+                
+                <div class="d-flex align-items-center justify-content-between mb-3 p-3 bg-light rounded-3 border flex-wrap gap-2">
+                    <div>
+                        <span class="text-muted small d-block">Estado del juego:</span>
+                        <span id="modal-ai-game-status-badge" class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">PENDING_REVIEW</span>
+                    </div>
+                    <div>
+                        <span class="text-muted small d-block">Tipo de actividad:</span>
+                        <span id="modal-ai-game-type-badge" class="badge bg-primary px-3 py-2 rounded-pill">Opción Múltiple</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Título del Juego</label>
+                    <input type="text" class="form-control" id="modal-ai-game-title" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Instrucciones para el Estudiante</label>
+                    <textarea class="form-control" id="modal-ai-game-instruction" rows="2" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Dificultad</label>
+                    <select class="form-select" id="modal-ai-game-difficulty">
+                        <option value="easy">Fácil</option>
+                        <option value="medium">Medio</option>
+                        <option value="hard">Difícil</option>
+                    </select>
+                </div>
+
+                <!-- Campos dinámicos según el tipo de juego -->
+                <div id="modal-ai-game-dynamic-content" class="p-3 bg-light rounded-3 border mb-3">
+                    <!-- Inyectado dinámicamente -->
+                </div>
+
+                <div id="modal-ai-game-feedback" class="mt-2 small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4 d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-modal-ai-game-delete">
+                        <i class="bi bi-trash me-1"></i> Eliminar
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm ms-1" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btn-modal-ai-game-save">
+                        <i class="bi bi-save me-1"></i> Guardar Cambios
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm fw-semibold" id="btn-modal-ai-game-regenerate">
+                        <i class="bi bi-arrow-repeat me-1"></i> Regenerar con IA
+                    </button>
+                    <button type="button" class="btn btn-info btn-sm fw-bold text-dark" id="btn-modal-ai-game-approve">
+                        <i class="bi bi-check2-circle me-1"></i> Aprobar (APPROVED)
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm fw-bold" id="btn-modal-ai-game-publish">
+                        <i class="bi bi-send-check me-1"></i> Publicar (PUBLISHED)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/teacher.js"></script>
+<script src="/static/js/teacher_reports.js"></script>
+</body>
+</html>

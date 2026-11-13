@@ -1,0 +1,36 @@
+{
+  "models": [
+    {
+      "name": "RandomForest",
+      "accuracy": 0.9115,
+      "precision": 0.9,
+      "recall": 0.9048,
+      "f1": 0.9024,
+      "roc_auc": 0.9605
+    },
+    {
+      "name": "GradientBoosting",
+      "accuracy": 0.9115,
+      "precision": 0.9,
+      "recall": 0.9048,
+      "f1": 0.9024,
+      "roc_auc": 0.9572
+    },
+    {
+      "name": "LogisticRegression",
+      "accuracy": 0.9115,
+      "precision": 0.913,
+      "recall": 0.8889,
+      "f1": 0.9008,
+      "roc_auc": 0.9676
+    },
+    {
+      "name": "DecisionTree",
+      "accuracy": 0.9115,
+      "precision": 0.913,
+      "recall": 0.8889,
+      "f1": 0.9008,
+      "roc_auc": 0.9543
+    }
+  ]
+}

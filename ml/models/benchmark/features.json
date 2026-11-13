@@ -1,0 +1,24 @@
+{
+  "canonical_features": [
+    "total_attempts",
+    "evaluation_count",
+    "activities_count",
+    "games_count",
+    "average_score",
+    "average_evaluation_score",
+    "average_activity_score",
+    "min_score",
+    "max_score",
+    "last_score",
+    "score_std",
+    "score_trend",
+    "total_correct_answers",
+    "total_wrong_answers",
+    "accuracy_ratio",
+    "average_time_spent_seconds",
+    "materials_reviewed_count",
+    "submissions_count"
+  ],
+  "count": 18,
+  "generated_at": "2026-09-17T21:43:00"
+}

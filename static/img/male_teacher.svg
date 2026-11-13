@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-labelledby="title desc">
+  <title id="title">Docente enseñando computación</title>
+  <desc id="desc">Ilustración de un profesor frente a un computador</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dff3ff"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="352" height="172" rx="24" fill="url(#bg)"/>
+  <circle cx="58" cy="42" r="22" fill="#bfdbfe" opacity=".8"/>
+  <circle cx="318" cy="136" r="30" fill="#c4b5fd" opacity=".45"/>
+  <path d="M80 158c5-37 27-57 58-57s54 20 59 57z" fill="url(#shirt)"/>
+  <path d="M116 108c6 15 17 23 29 23s24-8 30-23l-7-19h-45z" fill="#f2b28f"/>
+  <circle cx="145" cy="66" r="37" fill="#f6bd94"/>
+  <path d="M109 63c2-31 17-45 40-45 20 0 36 12 40 38-12-8-25-12-40-10-14 2-26 8-40 17z" fill="#26364a"/>
+  <path d="M111 62c3 23 12 39 34 43-20 5-35-13-37-36z" fill="#26364a"/>
+  <circle cx="132" cy="69" r="3" fill="#26364a"/><circle cx="158" cy="69" r="3" fill="#26364a"/>
+  <path d="M138 85c7 4 13 4 20 0" fill="none" stroke="#a65f55" stroke-width="3" stroke-linecap="round"/>
+  <path d="M113 59c7-9 17-13 27-14M151 45c11 0 19 5 26 13" fill="none" stroke="#26364a" stroke-width="3" stroke-linecap="round"/>
+  <rect x="222" y="77" width="90" height="59" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+  <rect x="230" y="85" width="74" height="42" rx="4" fill="#dbeafe"/>
+  <path d="M244 98h30M244 108h45M244 118h22" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+  <path d="M209 144h116l-12 12h-92z" fill="#94a3b8"/>
+  <path d="M187 117c17 6 28 15 38 25" fill="none" stroke="#f2b28f" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="225" cy="141" r="8" fill="#f2b28f"/>
+  <path d="M73 35l8 5-8 5M287 35l8-5-2 10" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

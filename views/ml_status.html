@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado del Subsistema ML - Computación Primaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .status-container {
+            max-width: 860px;
+            margin: 2.5rem auto;
+            padding: 0 1rem;
+        }
+        .status-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .status-header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: #ffffff;
+            padding: 2rem;
+        }
+        .status-grid-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.25rem;
+            height: 100%;
+        }
+        .status-label {
+            font-size: 0.82rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+        .status-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="status-container">
+    <div class="status-card mb-4">
+        <div class="status-header text-center">
+            <div class="d-inline-flex align-items-center justify-content-center bg-white text-primary rounded-circle mb-3 shadow-sm" style="width: 64px; height: 64px; font-size: 1.75rem;">
+                <i class="bi bi-cpu-fill"></i>
+            </div>
+            <h2 class="fw-bold mb-1">Estado del Subsistema de Machine Learning</h2>
+            <p class="mb-0 text-white-50">Monitoreo técnico de modelos predictivos y gobernanza algorítmica</p>
+        </div>
+
+        <div class="p-4">
+            <!-- Grid de Estado Principal -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="status-grid-item">
+                        <div class="status-label"><i class="bi bi-diagram-3-fill text-primary me-1"></i> Modelo Activo</div>
+                        <div class="status-value">{{ winner_name or 'Random Forest' }}</div>
+                        <small class="text-muted d-block mt-1">Ensemble Classifier</small>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="status-grid-item">
+                        <div class="status-label"><i class="bi bi-gear-wide-connected text-primary me-1"></i> Algoritmo</div>
+                        <div class="status-value">Random Forest</div>
+                        <small class="text-muted d-block mt-1">100 estimadores (Gini)</small>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="status-grid-item">
+                        <div class="status-label"><i class="bi bi-database-fill text-primary me-1"></i> Fuente</div>
+                        <div class="status-value">
+                            {% if source == 'institutional' %}
+                            Colegio (Real)
+                            {% else %}
+                            Benchmark UCI
+                            {% endif %}
+                        </div>
+                        <small class="text-muted d-block mt-1">Cortez &amp; Silva (2008)</small>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="status-grid-item">
+                        <div class="status-label"><i class="bi bi-activity text-primary me-1"></i> Estado</div>
+                        <div>
+                            {% if is_available %}
+                            <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fs-6 fw-bold">
+                                <i class="bi bi-check-circle-fill me-1"></i> Disponible
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-2 fs-6 fw-bold">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> No disponible
+                            </span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted d-block mt-1">Inferencia en tiempo real</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advertencia Metodológica -->
+            <div class="alert alert-warning border-warning d-flex align-items-start gap-3 p-3 rounded-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-3 text-warning flex-shrink-0 mt-1"></i>
+                <div>
+                    <h6 class="fw-bold mb-1 text-dark">Advertencia Metodológica para Tesis y Evaluadores</h6>
+                    <p class="mb-0 text-secondary small">
+                        <strong>No entrenado aún con datos institucionales:</strong> El modelo actual opera sobre el dataset público internacional de benchmark para demostrar la viabilidad algorítmica y técnica del pipeline. Para su despliegue formal en el colegio, la arquitectura admite la sustitución por datos históricos propios mediante <code>python ml/run_pipeline.py --source institutional</code> sin tocar el código fuente.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Métricas de Rendimiento -->
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Métricas de Validación Temporal (Out-of-Time)</h5>
+            <div class="row g-2 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light border rounded text-center">
+                        <small class="text-muted d-block fw-semibold">Sensibilidad (Recall)</small>
+                        <span class="fs-4 fw-bold text-danger">{{ "%.2f"|format((winner_metrics.recall * 100) if winner_metrics else 90.48) }}%</span>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">Detección de riesgo</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light border rounded text-center">
+                        <small class="text-muted d-block fw-semibold">Exactitud (Accuracy)</small>
+                        <span class="fs-4 fw-bold text-primary">{{ "%.2f"|format((winner_metrics.accuracy * 100) if winner_metrics else 91.15) }}%</span>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">Clasificación global</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light border rounded text-center">
+                        <small class="text-muted d-block fw-semibold">F1-Score (Riesgo)</small>
+                        <span class="fs-4 fw-bold text-success">{{ "%.4f"|format(winner_metrics.f1 if winner_metrics else 0.9024) }}</span>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">Equilibrio armónico</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light border rounded text-center">
+                        <small class="text-muted d-block fw-semibold">ROC-AUC</small>
+                        <span class="fs-4 fw-bold text-info">{{ "%.4f"|format(winner_metrics.roc_auc if winner_metrics else 0.9605) }}</span>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">Área bajo la curva</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Comparación Multimodelo -->
+            {% if models %}
+            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-table me-1"></i> Comparación Multialgorítmica Registrada</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Algoritmo Evaluado</th>
+                            <th class="text-center">Exactitud</th>
+                            <th class="text-center">Sensibilidad (Recall)</th>
+                            <th class="text-center">F1-Score</th>
+                            <th class="text-center">ROC-AUC</th>
+                            <th class="text-center">Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in models %}
+                        <tr class="{{ 'table-success' if m.name == winner_name else '' }}">
+                            <td><strong>{{ m.name }}</strong></td>
+                            <td class="text-center">{{ "%.2f"|format(m.accuracy * 100) }}%</td>
+                            <td class="text-center fw-bold {{ 'text-danger' if m.name == winner_name else '' }}">{{ "%.2f"|format(m.recall * 100) }}%</td>
+                            <td class="text-center">{{ "%.4f"|format(m.f1) }}</td>
+                            <td class="text-center">{{ "%.4f"|format(m.roc_auc) }}</td>
+                            <td class="text-center">
+                                {% if m.name == winner_name %}
+                                <span class="badge bg-success">Seleccionado</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark border">Comparado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Botones de Acción -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+                <a href="/teacher" class="btn btn-primary px-4 py-2 rounded-3 fw-bold">
+                    <i class="bi bi-arrow-left me-1"></i> Volver al Panel Docente
+                </a>
+                <span class="text-muted small">
+                    <i class="bi bi-shield-lock-fill text-success me-1"></i> Ley N.º 29733 (Privacidad de Datos) · Escala Vigesimal CNEB (0-20)
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

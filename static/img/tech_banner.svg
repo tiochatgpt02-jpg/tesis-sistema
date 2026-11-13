@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 220" width="100%" height="100%">
+  <defs>
+    <linearGradient id="banGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Banner Rounded Box -->
+  <rect width="500" height="220" rx="20" fill="url(#banGrad)" />
+
+  <!-- Background decorative circles -->
+  <circle cx="430" cy="50" r="90" fill="#ffffff" opacity="0.1" />
+  <circle cx="70" cy="180" r="70" fill="#ffffff" opacity="0.08" />
+
+  <!-- Computer Monitor Center -->
+  <g transform="translate(180, 25)">
+    <!-- Stand -->
+    <path d="M 50,120 L 90,120 L 100,145 L 40,145 Z" fill="#94a3b8" />
+    <rect x="30" y="145" width="80" height="8" rx="4" fill="#cbd5e1" />
+    <!-- Outer Frame -->
+    <rect x="0" y="0" width="140" height="120" rx="14" fill="#ffffff" />
+    <!-- Screen -->
+    <rect x="8" y="8" width="124" height="95" rx="8" fill="url(#screenGrad)" />
+
+    <!-- Code elements on screen -->
+    <rect x="18" y="20" width="40" height="8" rx="4" fill="#f43f5e" />
+    <rect x="63" y="20" width="50" height="8" rx="4" fill="#38bdf8" />
+
+    <rect x="18" y="36" width="70" height="8" rx="4" fill="#34d399" />
+
+    <rect x="18" y="52" width="25" height="8" rx="4" fill="#fbbf24" />
+    <rect x="48" y="52" width="55" height="8" rx="4" fill="#a78bfa" />
+
+    <rect x="18" y="68" width="80" height="8" rx="4" fill="#38bdf8" />
+    <!-- Smiley Face Badge on monitor -->
+    <circle cx="110" cy="85" r="10" fill="#fbbf24" />
+    <circle cx="106" cy="82" r="1.5" fill="#78350f" />
+    <circle cx="114" cy="82" r="1.5" fill="#78350f" />
+    <path d="M 106,87 Q 110,91 114,87" stroke="#78350f" stroke-width="1.5" fill="none" />
+  </g>
+
+  <!-- Left Side Badges: Keyboard & Mouse -->
+  <g transform="translate(35, 45)">
+    <rect x="0" y="0" width="110" height="65" rx="12" fill="#ffffff" opacity="0.2" />
+    <!-- Floating Laptop / Keyboard -->
+    <text x="18" y="42" font-size="36">💻</text>
+    <text x="60" y="45" font-size="28">⌨️</text>
+  </g>
+  <g transform="translate(45, 125)">
+    <rect x="0" y="0" width="100" height="40" rx="20" fill="#34d399" />
+    <text x="12" y="27" fill="#064e3b" font-family="sans-serif" font-weight="800" font-size="14">4° a 6° Primaria</text>
+  </g>
+
+  <!-- Right Side Badges: Robot & Scratch Block -->
+  <g transform="translate(345, 45)">
+    <rect x="0" y="0" width="120" height="70" rx="14" fill="#ffffff" opacity="0.2" />
+    <text x="15" y="48" font-size="40">🤖</text>
+    <text x="65" y="48" font-size="34">🧩</text>
+  </g>
+  <g transform="translate(345, 130)">
+    <rect x="0" y="0" width="120" height="40" rx="20" fill="#fbbf24" />
+    <text x="14" y="25" fill="#78350f" font-family="sans-serif" font-weight="900" font-size="13">COMPUTACIÓN</text>
+  </g>
+
+  <!-- Title banner text at bottom center -->
+  <text x="250" y="200" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-weight="800" font-size="16" letter-spacing="1">AULA VIRTUAL INTELIGENTE</text>
+</svg>
+

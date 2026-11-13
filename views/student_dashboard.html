@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Alumno - Computación Primaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<div class="dashboard-wrapper">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <span class="header-badge d-flex align-items-center gap-1">
+                <i class="bi bi-mortarboard-fill text-primary"></i>
+                <span>Grado: <strong>{{ grade }}° Primaria</strong></span>
+                <span class="badge bg-primary ms-1">Computación</span>
+            </span>
+        </div>
+        <div class="header-center">
+            <div class="header-topic-box">
+                <small><i class="bi bi-bookmark-star-fill text-warning me-1"></i> Último tema estudiado</small>
+                <strong>{{ last_topic }}</strong>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-outline-primary btn-header rounded-3" type="button" data-bs-toggle="modal" data-bs-target="#messagesModal">
+                <i class="bi bi-chat-dots-fill me-1"></i> Mensajes
+                {% if unread_messages %}<span class="badge bg-danger ms-1">{{ unread_messages }}</span>{% endif %}
+            </button>
+            <a href="/logout" class="btn-logout" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="dashboard-body">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <i class="bi bi-laptop-fill"></i>
+                </div>
+                <h5>{{ student_name }}</h5>
+                <small><i class="bi bi-award-fill text-warning me-1"></i> Alumno · {{ grade }}° Primaria</small>
+            </div>
+            <div class="sidebar-welcome">
+                <h5>¡Hola Alumno/a! <i class="bi bi-emoji-smile text-warning"></i></h5>
+                <p>Aula Virtual de Computación</p>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" data-section="temas">
+                    <span class="icon"><i class="bi bi-house-fill text-info"></i></span> Inicio
+                </button>
+                <button class="sidebar-btn" data-section="clases">
+                    <span class="icon"><i class="bi bi-book-half text-primary"></i></span> Mis clases
+                </button>
+                <button class="sidebar-btn" data-section="material" disabled title="Abre una clase para habilitar tus materiales">
+                    <span class="icon"><i class="bi bi-journal-bookmark-fill text-success"></i></span> Mis materiales
+                </button>
+                <button class="sidebar-btn" data-section="progreso">
+                    <span class="icon"><i class="bi bi-bar-chart-fill text-warning"></i></span> Mi progreso
+                </button>
+                <button class="sidebar-btn" type="button" data-bs-toggle="modal" data-bs-target="#messagesModal">
+                    <span class="icon"><i class="bi bi-envelope-fill text-primary"></i></span> Mensajes
+                    {% if unread_messages %}<span class="badge bg-danger ms-auto">{{ unread_messages }}</span>{% endif %}
+                </button>
+                <button class="sidebar-btn" data-section="recomendaciones">
+                    <span class="icon"><i class="bi bi-lightbulb-fill text-warning"></i></span> Recomendaciones
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+
+            <!-- MIS TEMAS -->
+            <div id="section-temas" class="section-panel active">
+                <div class="dashboard-hero student-dashboard-hero">
+                    <div class="dashboard-hero-copy">
+                        <span class="dashboard-eyebrow"><i class="bi bi-stars"></i> Aula Virtual de Computación</span>
+                        <h1>¡Hola, {{ student_name }}! <span>👋</span></h1>
+                        <p>Sigue aprendiendo y alcanza tus metas en Computación.</p>
+                        <div class="hero-stat-row">
+                            <div class="student-summary-card summary-course"><i class="bi bi-star-fill"></i><span><small>Mi curso</small><strong>{{ grade }}° Grado</strong><em>Computación Primaria</em></span></div>
+                            <div class="student-summary-card summary-class"><i class="bi bi-calendar-event-fill"></i><span><small>Mi próxima clase</small><strong>{{ next_class_title }}</strong><em>{{ next_class_description }}</em></span></div>
+                            <div class="student-summary-card summary-score"><i class="bi bi-trophy-fill"></i><span><small>Mi promedio {{ 'provisional' if progress.average_status == 'provisional' else '' }}</small><strong>{{ progress.average_grade if progress.average_grade is not none else 'Pendiente' }}{{ '/20' if progress.average_grade is not none else '' }}</strong><em>{{ progress.overall }}% de progreso general</em><b><span style="width: {{ [(progress.average_grade or 0) * 5, 100]|min }}%"></span></b></span></div>
+                        </div>
+                    </div>
+                    <img src="/static/img/tech_banner.svg" alt="Alumno aprendiendo computación" class="dashboard-hero-art">
+                </div>
+
+                <!-- Tarjeta de Estado Académico y Predicción Personalizada IA -->
+                <div class="panel-card mb-4 student-ai-prediction-card border-0 shadow-sm rounded-4" id="student-risk-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); border: 1px solid #e2e8f0 !important;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary-subtle text-primary p-2 rounded-circle fs-5">
+                                <i class="bi bi-robot"></i>
+                            </span>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-dark">Mi Estado Académico y Recomendaciones IA</h5>
+                                <small class="text-muted">Análisis predictivo de aprendizaje personalizado para <strong>{{ student_name }}</strong></small>
+                            </div>
+                        </div>
+                        <div id="student-risk-badge-container">
+                            <span class="badge {{ student_risk.badge_class or 'bg-primary' }} fs-6 px-3 py-2 rounded-pill shadow-sm" id="student-risk-badge">
+                                Nivel de Riesgo: <strong id="student-risk-level-label">{{ student_risk.risk_level_label or 'Calculando...' }}</strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Columna 1: Estado y Probabilidad de Riesgo -->
+                        <div class="col-lg-4 col-md-5">
+                            <div class="p-3 rounded-4 bg-white border h-100 text-center d-flex flex-column justify-content-center shadow-xs">
+                                <span class="text-muted small text-uppercase fw-bold mb-1">Estado Académico</span>
+                                <div class="fs-5 fw-bold mb-2 text-dark" id="student-academic-status">
+                                    {{ student_risk.academic_status or 'Analizando tu avance...' }}
+                                </div>
+                                <div class="p-3 my-2 rounded-3 bg-light">
+                                    <small class="text-muted d-block">Riesgo Académico Estimado</small>
+                                    <div class="d-flex align-items-baseline justify-content-center gap-1">
+                                        <strong class="display-6 fw-bold {% if student_risk.risk_level == 'HIGH' %}text-danger{% elif student_risk.risk_level == 'MEDIUM' %}text-warning{% else %}text-success{% endif %}" id="student-risk-percentage">
+                                            {% if student_risk.probability is not none %}
+                                                {{ (student_risk.probability * 100)|round|int }}%
+                                            {% else %}
+                                                --%
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div id="student-risk-progress-bar" class="progress-bar {% if student_risk.risk_level == 'HIGH' %}bg-danger{% elif student_risk.risk_level == 'MEDIUM' %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ (student_risk.probability * 100)|round|int if student_risk.probability is not none else 0 }}%"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-auto" style="font-size: 0.78rem;">
+                                    <i class="bi bi-shield-check text-success me-1"></i>Predicción IA basada en tus actividades
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Columna 2: Mensaje Motivacional y Recomendaciones -->
+                        <div class="col-lg-8 col-md-7">
+                            <div class="p-3 rounded-4 bg-white border h-100 d-flex flex-column shadow-xs">
+                                <!-- Mensaje Motivacional -->
+                                <div class="alert {% if student_risk.risk_level == 'HIGH' %}alert-danger{% elif student_risk.risk_level == 'MEDIUM' %}alert-warning{% else %}alert-success{% endif %} border-0 d-flex align-items-center gap-2 mb-3 py-2 px-3 rounded-3" id="student-motivational-alert">
+                                    <span class="fs-4" id="student-motivational-icon">
+                                        {% if student_risk.risk_level == 'HIGH' %}💪{% elif student_risk.risk_level == 'MEDIUM' %}🚀{% else %}⭐{% endif %}
+                                    </span>
+                                    <span class="fw-semibold text-dark" id="student-motivational-text">
+                                        {{ student_risk.motivational_message or 'Continúa practicando para seguir avanzando.' }}
+                                    </span>
+                                </div>
+
+                                <div class="row g-3 flex-grow-1">
+                                    <!-- Factores identificados -->
+                                    <div class="col-sm-6">
+                                        <div class="p-2 rounded-3 bg-light h-100">
+                                            <h6 class="small fw-bold text-dark mb-2">
+                                                <i class="bi bi-search text-primary me-1"></i> Factores de Aprendizaje:
+                                            </h6>
+                                            <ul class="list-unstyled mb-0 small" id="student-risk-factors-list">
+                                                {% for factor in student_risk.factors %}
+                                                <li class="text-secondary mb-1 d-flex align-items-start gap-1">
+                                                    <span class="text-primary">•</span> <span>{{ factor }}</span>
+                                                </li>
+                                                {% else %}
+                                                <li class="text-muted small">Cargando factores explicativos...</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <!-- Recomendaciones Formativas Adaptativas (GOAL 6) -->
+                                    <div class="col-sm-6">
+                                        <div class="p-2 rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <h6 class="small fw-bold text-dark mb-2">
+                                                    <i class="bi bi-lightbulb-fill text-warning me-1"></i> Recomendaciones Adaptativas:
+                                                </h6>
+                                                <ul class="list-unstyled mb-0 small" id="student-risk-recommendations-list">
+                                                    {% if adaptive_data and adaptive_data.actions %}
+                                                        {% for act in adaptive_data.actions %}
+                                                        <li class="text-dark mb-1 d-flex align-items-start gap-1">
+                                                            <span class="fw-semibold text-primary">{{ act.badge }}:</span>
+                                                            <span class="text-secondary">{{ act.title }}</span>
+                                                        </li>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        {% for rec in student_risk.recommendations %}
+                                                        <li class="text-dark mb-1 d-flex align-items-start gap-1">
+                                                            <i class="bi bi-check-circle-fill text-success mt-1" style="font-size: 0.75rem;"></i>
+                                                            <span>{{ rec }}</span>
+                                                        </li>
+                                                        {% else %}
+                                                        <li class="text-muted small">Realiza actividades para recibir sugerencias.</li>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                            <div class="mt-2 pt-2 border-top text-end">
+                                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold btn-go-to-recommendations" style="font-size: 0.8rem;">
+                                                    Ver plan personalizado completo <i class="bi bi-arrow-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="student-home-grid">
+                    <div class="panel-card recent-activities-card">
+                        <div class="overview-card-heading"><h5><i class="bi bi-clipboard2-check-fill text-primary"></i> Mis actividades recientes</h5><span>Ver todas <i class="bi bi-chevron-right"></i></span></div>
+                        {% for activity in recent_activities %}
+                        <div class="recent-activity-row"><div class="recent-activity-icon recent-icon-{{ loop.index0 % 3 }}"><i class="bi {{ 'bi-controller' if activity.type == 'Juego educativo' else ('bi-clipboard-check' if activity.type == 'Evaluación IA' else 'bi-keyboard') }}"></i></div><div class="recent-activity-info"><strong>{{ activity.title }}</strong><small>{{ activity.type }}</small></div><span class="status-pill {{ 'status-excellent' if activity.status == 'Completada' else 'status-good' }}">{{ activity.status }}</span><div class="recent-activity-score"><strong>{{ activity.score }}/100</strong><small>{{ activity.date }}</small></div></div>
+                        {% else %}
+                        <div class="student-empty-activity"><i class="bi bi-journal-plus"></i><strong>Aún no tienes actividades recientes</strong><span>Selecciona una clase para comenzar.</span></div>
+                        {% endfor %}
+                    </div>
+                    <div class="panel-card student-progress-card"><div class="overview-card-heading"><h5><i class="bi bi-bar-chart-fill text-primary"></i> Mi progreso por temas</h5></div>
+                        {% for topic_progress in progress.topics[:4] %}<div class="student-topic-progress"><div><span>{{ topic_progress.title }}</span><strong>{{ '%.2f'|format(topic_progress.score) }}%</strong></div><div class="topic-progress-track"><div style="width: {{ [topic_progress.score * 5, 100]|min }}%"></div></div></div>{% else %}<p class="student-empty-note">Completa una actividad para ver tu progreso por tema.</p>{% endfor %}
+                        <div class="student-encouragement"><i class="bi bi-trophy-fill"></i><span><strong>¡Vas muy bien!</strong><small>Tu esfuerzo se nota. Sigue avanzando.</small></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MIS CLASES -->
+            <div id="section-clases" class="section-panel">
+                <div class="section-heading-row"><div><h2 class="section-title">Mis <span>Clases</span></h2><p class="text-muted mb-0">Selecciona una clase para ver sus actividades.</p></div><span class="section-counter"><i class="bi bi-journal-check"></i> {{ topics|length }} temas</span></div>
+                {% for topic in topics %}
+                <div class="topic-card">
+                    <div class="topic-info">
+                        <h5>{{ topic.title }}</h5>
+                        <p>{{ topic.description|plain_summary }}</p>
+                        <small class="text-muted">Estado del tema:</small>
+                        {% if topic.status == 'Pendiente' %}
+                        <span class="badge-status badge-pendiente">{{ topic.status }}</span>
+                        {% elif topic.status == 'En proceso' %}
+                        <span class="badge-status badge-proceso">{{ topic.status }}</span>
+                        {% else %}
+                        <span class="badge-status badge-completado">{{ topic.status }}</span>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-primary btn-comenzar" data-topic-id="{{ topic.id }}">
+                        <i class="bi bi-arrow-right-circle"></i> Ver clase
+                    </button>
+                </div>
+                {% else %}
+                <div class="student-empty-activity"><i class="bi bi-journal-x"></i><strong>No hay clases asignadas</strong><span>El profesor todavía no ha asignado temas.</span></div>
+                {% endfor %}
+            </div>
+
+            <!-- MATERIAL DE APRENDIZAJE (GOAL 2) -->
+            <div id="section-material" class="section-panel">
+                <!-- Actividades y Entregas por Tema -->
+                <div class="panel-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-collection"></i> Actividades del tema seleccionado</h6>
+                        <span id="selected-topic-badge" class="badge bg-light text-secondary border"><i class="bi bi-stars"></i> Selecciona una clase</span>
+                    </div>
+                    <div class="activity-route-grid mb-3">
+                        <button type="button" class="activity-route-card route-practice" data-activity-target="lesson-content"><i class="bi bi-pencil-square"></i><span><strong>Actividad práctica</strong><small>Revisa el material y entrega tu trabajo</small></span><i class="bi bi-chevron-right"></i></button>
+                        <button type="button" class="activity-route-card route-game" data-activity-target="juegos"><i class="bi bi-controller"></i><span><strong>Juego educativo</strong><small>Refuerza el tema jugando</small></span><i class="bi bi-chevron-right"></i></button>
+                        <button type="button" class="activity-route-card route-evaluation" data-activity-target="evaluaciones"><i class="bi bi-clipboard-check"></i><span><strong>Evaluación IA</strong><small>Comprueba lo aprendido</small></span><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <div id="lesson-content">
+                        <p class="text-muted small mb-0">Selecciona “Ver clase” en cualquiera de tus temas para desplegar ejercicios específicos.</p>
+                    </div>
+                    <div id="lesson-activity" class="mt-3" hidden></div>
+                    <div id="selected-activity-view" class="mt-3" hidden></div>
+                    <div id="activity-navigation-feedback" class="small text-muted mb-2"></div>
+                </div>
+
+                <!-- Área Interactiva de Práctica IA Fundamentada -->
+                <div id="material-practice-area" class="panel-card mb-4 border-2 border-primary shadow-sm rounded-4" style="display: none; background: #ffffff;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary text-white p-2 rounded-circle fs-5">
+                                <i class="bi bi-lightning-charge-fill"></i>
+                            </span>
+                            <div>
+                                <h4 class="fw-bold mb-0 text-dark" id="practice-material-title">Práctica del material</h4>
+                                <small class="text-muted" id="practice-material-subtitle">Preguntas generadas por IA a partir del texto del docente</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-close-practice">
+                            <i class="bi bi-x-lg me-1"></i> Cerrar práctica
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small border-0 mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-check text-primary fs-5"></i>
+                        <span>Las preguntas han sido elaboradas <strong>exclusivamente a partir del texto del docente</strong> (cero alucinaciones). Cada pregunta incluye su fragmento de referencia.</span>
+                    </div>
+
+                    <div id="practice-loading" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="text-muted small mt-2">Analizando el texto del profesor y preparando las preguntas...</p>
+                    </div>
+
+                    <form id="practice-quiz-form">
+                        <div id="practice-questions-container" class="d-flex flex-column gap-3"></div>
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2" id="practice-form-actions" style="display: none !important;">
+                            <button type="submit" class="btn btn-primary fw-semibold px-4" id="btn-submit-practice">
+                                <i class="bi bi-send-check me-1"></i> Enviar respuestas y calificar
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="practice-feedback-area" class="mt-3"></div>
+                </div>
+
+            </div>
+
+            <!-- JUEGOS EDUCATIVOS Y DE REFORZAMIENTO -->
+            <div id="section-juegos" class="section-panel">
+                <!-- GOAL: Juegos Educativos Mágicos Generados por IA con UX Infantil -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white border-start border-4 border-warning">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning-subtle text-warning-emphasis small fw-bold mb-2">
+                                <i class="bi bi-robot"></i> Inteligencia Artificial Pedagógica
+                            </div>
+                            <h4 class="fw-bold text-dark mb-1">
+                                <i class="bi bi-stars text-warning me-2"></i>Juegos Mágicos con IA
+                            </h4>
+                            <p class="text-muted small mb-0">
+                                Retos interactivos generados dinámicamente a partir del material de tus clases. ¡Responde correctamente para ganar <strong>+10 puntos</strong>!
+                            </p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-back-to-materials-from-games">
+                                <i class="bi bi-arrow-left me-1"></i> Mis materiales
+                            </button>
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6 shadow-sm">
+                                <i class="bi bi-trophy-fill me-1 text-warning-emphasis"></i> +10 Puntos por Acierto
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Cuadrícula de juegos IA publicados -->
+                    <div class="row g-3 mb-3" id="ai-published-games-grid">
+                        <div class="col-12 text-center py-3 text-muted">
+                            <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+                            Cargando juegos mágicos de IA...
+                        </div>
+                    </div>
+
+                    <!-- Arena de Juego con UX Infantil -->
+                    <div id="ai-game-play-arena" class="game-arena" style="display: none;">
+                        <!-- Inyectado dinámicamente con botones grandes, colores y feedback infantil -->
+                    </div>
+                </div>
+
+                <!-- Grilla de Juegos por Sesión -->
+                <div id="games-content">
+                    <div class="row g-3" id="sessions-games-grid">
+                        <!-- Se puebla dinámicamente desde student.js -->
+                    </div>
+                </div>
+
+                <!-- Área de Juego Interactivo en Vivo -->
+                <div id="evaluation-play-area" class="mt-4"></div>
+            </div>
+
+            <!-- EVALUACIONES -->
+            <div id="section-evaluaciones" class="section-panel">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                        <h2 class="section-title mb-1"><i class="bi bi-clipboard-check-fill text-warning"></i> 5. Evaluaciones <span>Inteligentes</span></h2>
+                        <p class="text-muted mb-0">Evaluación preparada y revisada por el docente. La calificación se adapta a la cantidad de preguntas publicadas.</p>
+                    </div>
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6 shadow-sm">
+                        <i class="bi bi-award-fill me-1"></i> Evaluación Docente
+                    </span>
+                </div>
+
+                <div class="panel-card mb-3">
+                    <h6><i class="bi bi-journal-check"></i> Selecciona el tema para ver sus preguntas:</h6>
+                    <p class="small text-muted">Cada botón es un tema. Elige el mismo que el profesor generó con IA.</p>
+                    <div class="d-flex gap-2 flex-wrap mb-2" id="evaluations-selector">
+                        {% for topic in topics %}
+                        <button class="btn btn-outline-primary {% if loop.first %}active {% endif %}btn-eval-tab rounded-3" data-eval="{{ topic.id }}">
+                            {{ topic.title }}
+                        </button>
+                        {% else %}
+                        <span class="text-muted">No hay temas disponibles para tu grado.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Contenedor de Preguntas de Evaluación -->
+                <div id="evaluation-container-box">
+                    <!-- Se renderiza desde student.js -->
+                </div>
+            </div>
+
+            <!-- RECOMENDACIONES -->
+            <div id="section-recomendaciones" class="section-panel">
+                <div class="recommendations-hero mb-4">
+                    <div>
+                        <span class="recommendations-eyebrow"><i class="bi bi-stars"></i> Tu ruta personalizada IA + ML</span>
+                        <h2>Recomendaciones <span>Adaptativas</span></h2>
+                        <p>Sistema inteligente que unifica tus <strong>Notas + Evaluaciones + Juegos + Predicción ML</strong> para guiar tu aprendizaje paso a paso.</p>
+                    </div>
+                    <img src="/static/img/tech_banner.svg" alt="Estudiante aprendiendo con tecnología">
+                </div>
+
+                <!-- GOAL 6: Tarjeta Principal de Diagnóstico y Plan Adaptativo -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white" id="personalized-training-card">
+                    <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                        <div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill mb-2">Mi entrenamiento personalizado</span>
+                            <h4 class="fw-bold text-dark mb-1" id="personalized-training-title">{{ adaptive_learning.recommended_activity.title if adaptive_learning else 'Preparando tu siguiente práctica' }}</h4>
+                            <p class="text-secondary mb-2" id="personalized-training-message">{{ adaptive_learning.recommended_activity.message if adaptive_learning else 'Revisamos tus avances para recomendarte el siguiente paso.' }}</p>
+                            <small class="text-muted">Dificultad recomendada: <strong id="personalized-training-difficulty">{{ adaptive_learning.recommended_difficulty if adaptive_learning else 'medium' }}</strong></small>
+                        </div>
+                        <button type="button" class="btn btn-success rounded-pill px-3 btn-personalized-training"
+                            data-training-type="{{ adaptive_learning.recommended_activity.type if adaptive_learning else '' }}"
+                            data-game-id="{{ adaptive_learning.recommended_activity.game_id if adaptive_learning and adaptive_learning.recommended_activity.game_id else '' }}"
+                            data-material-id="{{ adaptive_learning.recommended_activity.material_id if adaptive_learning and adaptive_learning.recommended_activity.material_id else '' }}">
+                            Ver mi práctica
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white border-start border-4 border-primary" id="adaptive-diagnosis-card">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 pb-3 border-bottom">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1">
+                                <i class="bi bi-person-check-fill text-primary me-2"></i>Diagnóstico de Aprendizaje: <span id="adaptive-student-name">{{ adaptive_data.student_diagnosis.student_name if adaptive_data else student_name }}</span>
+                            </h4>
+                            <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-6 px-3 py-2 rounded-pill" id="adaptive-evidence-badge">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>
+                                    <strong id="adaptive-evidence-text">{{ adaptive_data.student_diagnosis.evidence if adaptive_data else 'Analizando desempeño...' }}</strong>
+                                </span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2" id="adaptive-topic-badge">
+                                    <i class="bi bi-tag-fill me-1"></i> Tema prioritario: <strong id="adaptive-topic-text">{{ adaptive_data.primary_topic if adaptive_data else 'Computación' }}</strong>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary px-3 py-2 rounded-pill fs-6 shadow-sm adaptive-real-data-badge" aria-hidden="true">
+                                <i class="bi bi-shield-check me-1"></i> Datos 100% Reales
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4 Pilares de Datos Reales del Alumno -->
+                    <div class="row g-2 mb-4" id="adaptive-pillars-row">
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-2 rounded-3 bg-light border text-center">
+                                <small class="text-muted d-block fw-bold"><i class="bi bi-journal-text text-primary me-1"></i> 1. Notas</small>
+                                <strong class="fs-6 text-dark" id="pillar-notes-val">{{ adaptive_data.student_diagnosis.average_score if adaptive_data else '--' }}/20</strong>
+                                <small class="text-secondary d-block" style="font-size: 0.72rem;">Promedio registrado</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-2 rounded-3 bg-light border text-center">
+                                <small class="text-muted d-block fw-bold"><i class="bi bi-clipboard-check text-success me-1"></i> 2. Evaluaciones</small>
+                                <strong class="fs-6 text-dark" id="pillar-evals-val">{{ adaptive_data.student_diagnosis.failed_questions_count if adaptive_data else 0 }} fallas</strong>
+                                <small class="text-secondary d-block" style="font-size: 0.72rem;">En pruebas recientes</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-2 rounded-3 bg-light border text-center">
+                                <small class="text-muted d-block fw-bold"><i class="bi bi-controller text-warning me-1"></i> 3. Juegos</small>
+                                <strong class="fs-6 text-dark" id="pillar-games-val">{{ adaptive_data.student_diagnosis.games_count if adaptive_data else 0 }} completados</strong>
+                                <small class="text-secondary d-block" style="font-size: 0.72rem;">Práctica lúdica</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-2 rounded-3 bg-light border text-center">
+                                <small class="text-muted d-block fw-bold"><i class="bi bi-robot text-danger me-1"></i> 4. Predicción ML</small>
+                                <strong class="fs-6 text-dark" id="pillar-ml-val">{{ adaptive_data.student_diagnosis.ml_risk_level if adaptive_data else 'Medio' }} ({{ adaptive_data.student_diagnosis.ml_probability if adaptive_data else '--' }}%)</strong>
+                                <small class="text-secondary d-block" style="font-size: 0.72rem;">Random Forest</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plan de Acción Canónico de 3 Pasos (Ejemplo de Tesis: 📖 Leer material, 🎮 Juego, 📝 Evaluación) -->
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold">Plan Formativo</span>
+                            <h5 class="fw-bold mb-0 text-dark" id="adaptive-headline">
+                                {{ adaptive_data.headline if adaptive_data else 'Te recomendamos este plan personalizado:' }}
+                            </h5>
+                        </div>
+
+                        <div class="row g-3" id="adaptive-actions-grid">
+                            {% if adaptive_data and adaptive_data.actions %}
+                                {% for act in adaptive_data.actions %}
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-2 shadow-xs rounded-4 p-3 bg-white border-{{ act.color }} d-flex flex-column">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-{{ act.color }} px-2 py-1 rounded-pill small fw-bold">
+                                                {{ act.badge }}
+                                            </span>
+                                            <i class="bi {{ act.icon }} text-{{ act.color }} fs-4"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark mb-1">{{ act.title }}</h5>
+                                        <p class="text-secondary small flex-grow-1 mb-3" style="line-height: 1.4;">{{ act.summary }}</p>
+                                        <button type="button" class="btn btn-{{ act.color }} btn-sm w-100 rounded-pill fw-bold btn-adaptive-action mt-auto"
+                                            data-action-type="{{ act.action_type }}"
+                                            data-material-id="{{ act.get('material_id', 1) }}"
+                                            data-game-id="{{ act.get('game_id', 1) }}"
+                                            data-topic-id="{{ act.get('topic_id', 4) }}">
+                                            <i class="bi bi-arrow-right-circle me-1"></i> {{ act.button_text }}
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12 text-center py-3 text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Cargando plan de recomendación adaptativo...
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recommendation-filters" id="recommendation-filters" role="tablist" aria-label="Filtrar recomendaciones">
+                    <button class="recommendation-filter active" data-filter="all"><i class="bi bi-grid"></i> Todas <span>{{ recommendations|length }}</span></button>
+                    <button class="recommendation-filter" data-filter="lectura"><i class="bi bi-book"></i> Lectura</button>
+                    <button class="recommendation-filter" data-filter="tareas"><i class="bi bi-clipboard-check"></i> Tareas</button>
+                    <button class="recommendation-filter" data-filter="practica"><i class="bi bi-bullseye"></i> Práctica</button>
+                    <button class="recommendation-filter" data-filter="refuerzo"><i class="bi bi-star-fill"></i> Refuerzo</button>
+                </div>
+                <section class="panel-card mb-4" id="reinforcement-recommendations-panel">
+                    <h5 class="fw-bold mb-2"><i class="bi bi-controller text-success me-1"></i> Juegos recomendados para reforzar tus temas</h5>
+                    <p class="small text-muted mb-3">Sugerencias basadas en las respuestas que necesitas reforzar en tus evaluaciones.</p>
+                    <div id="reinforcement-recommendations-list" class="d-flex flex-wrap gap-2">
+                        <span class="small text-muted">Cargando recomendaciones...</span>
+                    </div>
+                </section>
+                <div id="recommendations-dynamic-list" class="recommendation-list">
+                    {% for rec in recommendations %}
+                    <div class="recommendation-card recommendation-card-{{ loop.index0 % 3 }}" data-recommendation-category="{{ 'refuerzo' if 'apoyo' in rec.title|lower else ('tareas' if 'evaluac' in rec.title|lower else 'practica') }}">
+                        <div class="recommendation-art"><i class="bi bi-lightbulb-fill"></i></div>
+                        <div class="recommendation-content">
+                            <span class="recommendation-kicker">{{ 'Refuerzo' if 'apoyo' in rec.title|lower else ('Tarea' if 'evaluac' in rec.title|lower else 'Práctica') }}</span>
+                            <h6>{{ rec.title }}</h6>
+                            <p>{{ rec.summary }}</p>
+                            <span class="recommendation-detail"><i class="bi bi-check-circle me-1"></i>Actividad adaptada a tu progreso</span>
+                        </div>
+                        <div class="recommendation-meta"><span><i class="bi bi-clock"></i> 20 min</span><span><i class="bi bi-bar-chart"></i> Nivel medio</span><button type="button" class="recommendation-cta" data-target-section="{{ 'evaluaciones' if 'evaluac' in rec.title|lower else 'material' }}">Ver detalles <i class="bi bi-chevron-right"></i></button></div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">Realiza tus actividades y evaluaciones para recibir recomendaciones personalizadas de IA.</div>
+                    {% endfor %}
+                </div>
+                <div class="recommendation-footer"><i class="bi bi-trophy-fill"></i><strong>Tu esfuerzo de hoy construye el éxito de mañana.</strong><span>Sigue avanzando a tu ritmo <i class="bi bi-arrow-right"></i></span></div>
+                <div class="panel-card mt-4">
+                    <h5 class="mb-3"><i class="bi bi-emoji-smile text-warning me-2"></i>Misiones con personajes</h5>
+                    <p class="small text-muted">Elige un personaje para hacer más entretenida tu próxima práctica.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-success"><tr><th>Personaje</th><th>Misión</th><th>Actividad sugerida</th><th>Nivel</th></tr></thead>
+                            <tbody>
+                                <tr><td><span class="fs-3">🦊</span> Zuri</td><td>Exploradora</td><td>Relaciona conceptos del tema</td><td><span class="badge bg-success">Fácil</span></td></tr>
+                                <tr><td><span class="fs-3">🐼</span> Pipo</td><td>Detective</td><td>Elige la mejor respuesta</td><td><span class="badge bg-warning text-dark">Medio</span></td></tr>
+                                <tr><td><span class="fs-3">🦉</span> Luma</td><td>Guía</td><td>Ordena los pasos del reto</td><td><span class="badge bg-danger">Desafío</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="recommendationDetailsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content recommendation-detail-modal">
+                        <div class="modal-header">
+                            <div><span id="recommendation-detail-category" class="recommendation-eyebrow"></span><h5 id="recommendation-detail-title" class="mb-0"></h5></div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="recommendation-detail-illustration"><i class="bi bi-stars"></i></div>
+                            <p id="recommendation-detail-summary" class="recommendation-detail-summary"></p>
+                            <div class="recommendation-detail-stats"><span><i class="bi bi-clock"></i><strong>20 min</strong><small>Tiempo estimado</small></span><span><i class="bi bi-bar-chart"></i><strong>Nivel medio</strong><small>Dificultad</small></span><span><i class="bi bi-check2-circle"></i><strong>IA</strong><small>Ruta personalizada</small></span></div>
+                            <div class="recommendation-detail-steps"><strong>Tu siguiente paso</strong><p>Realiza la actividad recomendada y revisa la retroalimentación para seguir avanzando.</p></div>
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Más tarde</button><button type="button" id="recommendation-detail-action" class="recommendation-cta">Comenzar <i class="bi bi-arrow-right"></i></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MI PROGRESO -->
+            <div id="section-progreso" class="section-panel">
+                <h2 class="section-title">8. Mi <span>Progreso</span></h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ progress.overall }}%</div>
+                        <div class="stat-label">Progreso general</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ progress.completed }}</div>
+                        <div class="stat-label">Temas completados</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ progress.average_grade if progress.average_grade is not none else 'Pendiente' }}{{ '/20' if progress.average_grade is not none else '' }}</div>
+                        <div class="stat-label">Promedio general</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="font-size:1.4rem;">{{ progress.study_time }}</div>
+                        <div class="stat-label">Tiempo de estudio</div>
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <h6><i class="bi bi-clock-history"></i> Historial de actividades</h6>
+                    <div id="progress-history"><p class="text-muted">Cargando actividad registrada...</p></div>
+                </div>
+                <div class="panel-card">
+                    <h6><i class="bi bi-bar-chart-line"></i> Progreso por tema</h6>
+                    {% for topic_progress in progress.topics %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between"><span>{{ topic_progress.title }}</span><strong>{{ '%.2f'|format(topic_progress.score) }}%</strong></div>
+                        <div class="progress" role="progressbar" aria-label="Progreso de {{ topic_progress.title }}" aria-valuenow="{{ topic_progress.score }}" aria-valuemin="0" aria-valuemax="20">
+                            <div class="progress-bar" style="width: {{ [topic_progress.score * 5, 100]|min }}%"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Aún no hay resultados por tema.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="messagesModal" tabindex="-1" aria-labelledby="messagesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="messagesModalLabel"><i class="bi bi-chat-dots-fill me-2"></i>Mensajes del profesor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="messages-student-list"><p class="text-muted text-center">Cargando mensajes...</p></div>
+            </div>
+        </div>
+    </div>
+<!-- Modal de Lectura de Material Educativo (GOAL 2) -->
+<div class="modal fade" id="modalReadMaterial" tabindex="-1" aria-labelledby="modalReadMaterialTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white py-3">
+                <div>
+                    <span class="badge bg-white text-primary rounded-pill small mb-1" id="read-material-topic">Tema</span>
+                    <h5 class="modal-title fw-bold" id="modalReadMaterialTitle">📖 Título del Material</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4" style="font-size: 1.05rem; line-height: 1.8; color: #1e293b;">
+                <div class="p-3 bg-light rounded-3 mb-3 border" id="read-material-body" style="white-space: pre-line; max-height: 450px; overflow-y: auto;">
+                    Cargando contenido...
+                </div>
+                <div class="small text-muted d-flex align-items-center gap-1">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span>Este material fue preparado por tu profesor. Al terminar de leerlo, puedes practicar preguntas sobre este tema.</span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light d-flex justify-content-between flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm" id="btn-modal-mark-reviewed">
+                    <i class="bi bi-check2-circle me-1"></i> Marcar como leído
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btn-modal-start-practice">
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Practicar este contenido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/student.js"></script>
+</body>
+</html>

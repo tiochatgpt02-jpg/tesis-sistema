@@ -1,0 +1,10 @@
+{
+  "strategy": "temporal",
+  "random_state": 42,
+  "train_period": [
+    "2023-B1"
+  ],
+  "test_period": "2024-B1",
+  "train_samples": 626,
+  "test_samples": 418
+}

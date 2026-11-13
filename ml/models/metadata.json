@@ -1,0 +1,145 @@
+{
+  "available": true,
+  "status": "MODEL_AVAILABLE",
+  "version": "v1_20260919",
+  "name": "RandomForest",
+  "selected_algorithm": "RandomForest",
+  "dataset_source": "benchmark",
+  "split_strategy": "temporal",
+  "validation_info": {
+    "strategy": "temporal",
+    "random_state": 42,
+    "train_period": [
+      "2023-B1"
+    ],
+    "test_period": "2024-B1",
+    "train_samples": 626,
+    "test_samples": 418
+  },
+  "trained_at": "2026-09-19T02:49:50.582812",
+  "dataset_path": "C:\\Users\\familia\\Downloads\\sistema IA\\sistema IA\\ml\\datasets\\benchmark\\processed\\training_dataset.csv",
+  "features": [
+    "total_attempts",
+    "evaluation_count",
+    "activities_count",
+    "games_count",
+    "average_score",
+    "average_evaluation_score",
+    "average_activity_score",
+    "min_score",
+    "max_score",
+    "last_score",
+    "score_std",
+    "score_trend",
+    "total_correct_answers",
+    "total_wrong_answers",
+    "accuracy_ratio",
+    "average_time_spent_seconds",
+    "materials_reviewed_count",
+    "submissions_count"
+  ],
+  "feature_importances": {
+    "total_attempts": 0.0,
+    "evaluation_count": 0.0,
+    "activities_count": 0.0,
+    "games_count": 0.0,
+    "average_score": 0.1621,
+    "average_evaluation_score": 0.2493,
+    "average_activity_score": 0.0655,
+    "min_score": 0.1002,
+    "max_score": 0.1259,
+    "last_score": 0.2733,
+    "score_std": 0.0057,
+    "score_trend": 0.0179,
+    "total_correct_answers": 0.0,
+    "total_wrong_answers": 0.0,
+    "accuracy_ratio": 0.0,
+    "average_time_spent_seconds": 0.0,
+    "materials_reviewed_count": 0.0,
+    "submissions_count": 0.0
+  },
+  "test_metrics": {
+    "accuracy": 0.9115,
+    "positive_class_precision": 0.9,
+    "positive_class_recall": 0.9048,
+    "positive_class_f1": 0.9024,
+    "macro_precision": 0.9105,
+    "macro_recall": 0.9109,
+    "macro_f1": 0.9107,
+    "confusion_matrix": [
+      [
+        210,
+        19
+      ],
+      [
+        18,
+        171
+      ]
+    ],
+    "roc_auc": 0.9605,
+    "classification_report": {
+      "0": {
+        "precision": 0.9210526315789473,
+        "recall": 0.9170305676855895,
+        "f1-score": 0.9190371991247265,
+        "support": 229.0
+      },
+      "1": {
+        "precision": 0.9,
+        "recall": 0.9047619047619048,
+        "f1-score": 0.9023746701846965,
+        "support": 189.0
+      },
+      "accuracy": 0.9114832535885168,
+      "macro avg": {
+        "precision": 0.9105263157894736,
+        "recall": 0.9108962362237472,
+        "f1-score": 0.9107059346547115,
+        "support": 418.0
+      },
+      "weighted avg": {
+        "precision": 0.9115336187358347,
+        "recall": 0.9114832535885168,
+        "f1-score": 0.9115031848432298,
+        "support": 418.0
+      }
+    }
+  },
+  "comparison_results": [
+    {
+      "name": "RandomForest",
+      "accuracy": 0.9115,
+      "precision": 0.9,
+      "recall": 0.9048,
+      "f1": 0.9024,
+      "roc_auc": 0.9605
+    },
+    {
+      "name": "GradientBoosting",
+      "accuracy": 0.9115,
+      "precision": 0.9,
+      "recall": 0.9048,
+      "f1": 0.9024,
+      "roc_auc": 0.9572
+    },
+    {
+      "name": "LogisticRegression",
+      "accuracy": 0.9115,
+      "precision": 0.913,
+      "recall": 0.8889,
+      "f1": 0.9008,
+      "roc_auc": 0.9676
+    },
+    {
+      "name": "DecisionTree",
+      "accuracy": 0.9115,
+      "precision": 0.913,
+      "recall": 0.8889,
+      "f1": 0.9008,
+      "roc_auc": 0.9543
+    }
+  ],
+  "total_samples": 1044,
+  "train_samples": 626,
+  "test_samples": 418
+}
