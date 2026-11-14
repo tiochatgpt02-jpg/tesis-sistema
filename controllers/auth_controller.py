@@ -42,6 +42,8 @@ def login():
         selected_grade = request.form.get('grade')
 
         user = fetch_user_by_username(username)
+        student_record = fetch_student_by_id(user['student_id']) if user and user.get('role') == 'student' and user.get('student_id') else None
+        account_section = str((student_record or {}).get('section') or (user or {}).get('section') or '').strip().upper()
 
         if user and user.get('role') == 'student':
             try:
@@ -54,8 +56,8 @@ def login():
                 return render_template('login.html', error='Debes seleccionar el grado correcto para este alumno.')
             if int(expected_grade) != selected_grade_value:
                 return render_template('login.html', error='El grado seleccionado no coincide con este alumno.')
-            selected_section = str(request.form.get('section') or 'A').strip().upper()
-            if selected_section != str(user.get('section') or 'A').upper():
+            selected_section = str(request.form.get('section') or '').strip().upper()
+            if account_section and selected_section and selected_section != account_section:
                 return render_template('login.html', error='La sección seleccionada no coincide con este alumno.')
 
         password_valid = _password_is_valid(user, password)
@@ -67,7 +69,7 @@ def login():
             session['user_id'] = user.get('id')
             session['user_role'] = user.get('role')
             session['user_grade'] = user.get('grade')
-            session['user_section'] = (user.get('section') or 'A')
+            session['user_section'] = account_section
             session['student_id'] = ensure_student_record_for_user(user, section=session['user_section']) if user.get('role') == 'student' else None
             session['student_name'] = f"{user.get('first_name', '')} {user.get('last_name', username)}".strip()
             session['teacher_name'] = f"{user.get('first_name', 'Prof.')} {user.get('last_name', '')}".strip()
