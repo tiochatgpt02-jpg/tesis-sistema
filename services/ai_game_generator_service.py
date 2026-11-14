@@ -56,6 +56,8 @@ class AIGameGeneratorService:
         # Intentar con el proveedor si hay texto. El origen siempre queda visible en
         # desarrollo: un fallback no debe parecer una respuesta del modelo.
         failure_reason = ''
+        if len(context_text) > 20000:
+            return {'success': False, 'error': 'La presentación contiene demasiado texto para una sola actividad. Divide el material por sesión.'}
         if context_text:
             prompt = cls._build_pedagogical_prompt(title, context_text, target_type, grade, adaptation_context)
             print(f'[AI] modelo: {Config.AI_PROVIDER}', flush=True)
@@ -137,6 +139,7 @@ Genera 3 o 4 opciones de respuesta cortas donde solo UNA sea la correcta.
 La respuesta correcta debe corresponder textualmente a una de las opciones.
 La respuesta correcta debe copiar una frase o expresión exacta del PPT; no la parafrasees ni agregues datos.
 No uses los textos "Opción correcta", "Distractor", "Concepto 1" ni marcadores genéricos.
+Formula una pregunta afirmativa sobre la definición o función principal; no preguntes qué NO aparece en la presentación. Cada alternativa debe copiar una expresión del material, con una sola respuesta que conteste esa pregunta.
 """
             example_json = f"""{{
   "game_type": "multiple_choice",
@@ -274,13 +277,27 @@ Crea una AVENTURA POR NIVELES con exactamente 3 preguntas de opción múltiple. 
   }}
 }}"""
 
+        # Empty output contracts avoid contaminating the lesson with examples
+        # about unrelated subjects or generic answers copied from a sample.
+        contracts = {
+            'multiple_choice': {'question': '', 'options': ['', '', ''], 'answer': '', 'explanation': ''},
+            'true_false': {'statement': '', 'correct_answer': True, 'explanation': ''},
+            'fill_blank': {'sentence': '', 'blank_word': '', 'options': ['', '', ''], 'answers': [''], 'explanation': ''},
+            'matching': {'pairs': [{'left': '', 'right': ''}, {'left': '', 'right': ''}], 'explanation': ''},
+            'memory': {'pairs': [{'left': '', 'right': ''}, {'left': '', 'right': ''}, {'left': '', 'right': ''}], 'explanation': ''},
+            'ordering': {'items': ['', '', ''], 'explanation': ''},
+            'drag_drop': {'categories': ['', ''], 'items': [{'item': '', 'category': ''}], 'explanation': ''},
+            'challenge': {'levels': [{'level': n, 'question': '', 'options': ['', '', ''], 'answer': ''} for n in (1, 2, 3)], 'explanation': ''},
+        }
+        example_json = json.dumps({'game_type': game_type, 'title': '', 'instruction': '',
+                                   'content': contracts[game_type]}, ensure_ascii=False)
         prompt = f"""Eres un diseñador de actividades y juegos educativos para niños de educación primaria ({grade}° de primaria).
 Tu objetivo es transformar el material del profesor en una actividad divertida, clara y motivadora.
 
 MATERIAL EDUCATIVO DEL PROFESOR:
 \"\"\"
 Título: {title}
-{context_text[:2500]}
+{context_text}
 \"\"\"
 
 INSTRUCCIONES PEDAGÓGICAS:
@@ -291,6 +308,9 @@ INSTRUCCIONES PEDAGÓGICAS:
 5. Devuelve ÚNICAMENTE la estructura en JSON válido, sin texto introductorio ni bloques markdown fuera del JSON.
 6. Copia literalmente del material los textos evaluados: answer, blank_word, pairs.left, items de ordering y items.item de drag_drop. No agregues sinónimos ni prefijos como "Primer paso:" o "Segundo paso:". En challenge usa respuestas correctas cortas que sean fragmentos literales del material y coincidan con una opción.
 
+No preguntes por el nombre del profesor, el curso ni los rótulos de la portada.
+El esquema siguiente está vacío: completa TODOS los campos con contenido del material; no devuelvas cadenas vacías.
+Para opción múltiple y aventura, formula una pregunta específica y alternativas concretas, con una sola respuesta correcta. Las opciones incorrectas deben ser términos del mismo material usados como distractores; no uses etiquetas como "Correcta", "Otra", "Información no relacionada" ni ejemplos externos.
 ESTRUCTURA JSON EXACTA:
 {example_json}
 """
@@ -665,6 +685,9 @@ ESTRUCTURA JSON EXACTA:
         ignored = {
             'concepto', 'conceptos', 'material', 'tema', 'clase', 'actividad',
             'juego', 'parte', 'ciclo', 'agua',
+            'solo', 'solamente', 'tipo', 'tipos', 'segun', 'todos', 'todas',
+            'tambien', 'tiene', 'tienen', 'puede', 'pueden', 'para', 'como',
+            'esta', 'este', 'estos', 'estas',
         }
 
         def grounded(text: Any) -> bool:
