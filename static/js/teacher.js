@@ -2704,6 +2704,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderAiGameReadOnlyPreview(gameType, content) {
+        let preview = '';
+        if (gameType === 'drag_drop') {
+            preview = `<h6 class="fw-bold">Elementos y sus grupos correctos</h6>
+                <ul>${(content.items || []).map(item =>
+                    `<li><strong>${escapeText(item.item)}</strong>: ${escapeText(item.category)}</li>`,
+                ).join('')}</ul>`;
+        } else if (gameType === 'memory') {
+            preview = `<h6 class="fw-bold">Parejas de tarjetas</h6>
+                <ul>${(content.pairs || []).map(pair =>
+                    `<li><strong>${escapeText(pair.left)}</strong>: ${escapeText(pair.right)}</li>`,
+                ).join('')}</ul>`;
+        } else if (gameType === 'ordering') {
+            preview = `<h6 class="fw-bold">Orden correcto</h6>
+                <ol>${(content.items || []).map(item => `<li>${escapeText(item)}</li>`).join('')}</ol>`;
+        } else if (gameType === 'challenge') {
+            preview = (content.levels || []).map((level, index) => `
+                <section class="mb-3">
+                    <h6 class="fw-bold">Nivel ${index + 1}</h6>
+                    <p class="mb-1">${escapeText(level.question)}</p>
+                    <ul>${(level.options || []).map(option => `<li>${escapeText(option)}</li>`).join('')}</ul>
+                    <p class="mb-0"><strong>Respuesta correcta:</strong> ${escapeText(level.answer)}</p>
+                </section>
+            `).join('');
+        }
+
+        return `<div id="ai-game-content-preview" class="small">
+            ${preview || '<p>Revisa el juego antes de aprobarlo.</p>'}
+            ${content.explanation ? `<p><strong>Explicación:</strong> ${escapeText(content.explanation)}</p>` : ''}
+            <p class="text-muted mb-0">Este contenido se muestra solo para revisión. Puedes ajustar el título, las instrucciones y la dificultad. Si necesitas otro contenido, usa Regenerar con IA y revisa la nueva versión.</p>
+        </div>`;
+    }
+
     async function openAiGameReviewModal(gameId) {
         if (!aiGameReviewModal) return;
         const modalIdInput = document.getElementById('modal-ai-game-id');
@@ -2818,11 +2851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else {
-                dynHtml = `
-                    <label class="form-label small fw-bold">Datos del juego (JSON)</label>
-                    <p class="small text-muted">Puedes editar las tarjetas, pasos, categorías o niveles. La estructura se validará antes de guardar.</p>
-                    <textarea class="form-control font-monospace small" id="edit-game-json" rows="12" required>${escapeText(JSON.stringify(c, null, 2))}</textarea>
-                `;
+                dynHtml = renderAiGameReadOnlyPreview(game.game_type, c);
             }
 
             dynamicContentArea.innerHTML = dynHtml;
@@ -2842,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newDifficulty = document.getElementById('modal-ai-game-difficulty').value;
             const typeBadge = document.getElementById('modal-ai-game-type-badge').textContent.trim();
 
-            let newContent = {};
+            let newContent = null;
             if (typeBadge === 'multiple_choice') {
                 const q = document.getElementById('edit-mc-question').value.trim();
                 const rawOpts = document.getElementById('edit-mc-options').value;
@@ -2870,27 +2899,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const exp = document.getElementById('edit-match-explanation').value.trim();
                 newContent = { pairs, explanation: exp };
-            } else {
-                try {
-                    newContent = JSON.parse(document.getElementById('edit-game-json').value);
-                    delete newContent._meta;
-                } catch (error) {
-                    showModalAiGameFeedback('El JSON del juego no es válido.', 'danger');
-                    return;
-                }
             }
+
+            // Omit read-only content so the server preserves the stored game.
+            const updates = { title: newTitle, instruction: newInstruction, difficulty: newDifficulty };
+            if (newContent !== null) updates.content_json = newContent;
 
             try {
                 btnModalSave.disabled = true;
                 const resp = await fetch(`/teacher/api/ai-games/${gameId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: newTitle,
-                        instruction: newInstruction,
-                        content_json: newContent,
-                        difficulty: newDifficulty
-                    })
+                    body: JSON.stringify(updates)
                 });
                 const data = await resp.json();
                 btnModalSave.disabled = false;
