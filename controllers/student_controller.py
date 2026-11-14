@@ -75,7 +75,7 @@ def _auth_check():
 
 def _current_student_section():
     student = fetch_student_by_id(session.get('student_id', 1)) or {}
-    return str(student.get('section') or session.get('user_section') or 'A').strip().upper()
+    return str(student.get('section') or session.get('user_section') or '').strip().upper()
 
 
 def _published_topic_for_student(topic_id):
