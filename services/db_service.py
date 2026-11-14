@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 import unicodedata
 import os
 import json
@@ -110,7 +110,7 @@ def _normalize_user_record(user):
         'first_name': name_parts[0] if name_parts else '',
         'last_name': name_parts[1] if len(name_parts) > 1 else '',
         'grade': grade,
-        'section': user.get('section') or 'A',
+        'section': user.get('section') or '',
     }
 
 
@@ -131,7 +131,7 @@ def fetch_registered_students_for_messages():
     """Devuelve las cuentas de alumnos de users enlazadas con students para mensajes."""
     raw_users = _query('SELECT * FROM users ORDER BY id')
     student_rows = _query(
-        "SELECT id, first_name, last_name, grade, COALESCE(section, 'A') AS section, "
+        "SELECT id, first_name, last_name, grade, COALESCE(section, '') AS section, "
         "COALESCE(student_code, CONCAT('ALU-', LPAD(id::text, 4, '0'))) AS student_code, "
         "progress, observations FROM students ORDER BY id"
     )
@@ -167,7 +167,7 @@ def fetch_registered_students_for_messages():
             'first_name': user.get('first_name', ''),
             'last_name': user.get('last_name', ''),
             'grade': grade,
-            'section': user.get('section') or student_row.get('section') or 'A',
+            'section': user.get('section') or student_row.get('section') or '',
         })
 
     return sorted(
@@ -376,8 +376,8 @@ def fetch_topic_by_id(topic_id):
     return _query('SELECT * FROM topics WHERE id = %s', (int(topic_id),), fetchone=True)
 
 
-def insert_student(first_name, last_name, grade, section='A'):
-    target_section = str(section or 'A').upper()
+def insert_student(first_name, last_name, grade, section=''):
+    target_section = str(section or '').upper()
     student_id = _execute(
         'INSERT INTO students (first_name, last_name, grade, section, progress, observations) VALUES (%s, %s, %s, %s, 0, %s)',
         (first_name, last_name, int(grade), target_section, ''),
@@ -394,7 +394,7 @@ def fetch_student_by_id(student_id):
         from services.mock_data import MOCK_STUDENTS
         return next((dict(s) for s in MOCK_STUDENTS if s['id'] == int(student_id)), None)
     return _query(
-        "SELECT id, first_name, last_name, grade, COALESCE(section, 'A') AS section, "
+        "SELECT id, first_name, last_name, grade, COALESCE(section, '') AS section, "
         "COALESCE(student_code, CONCAT('ALU-', LPAD(id::text, 4, '0'))) AS student_code, "
         'progress, observations FROM students WHERE id = %s',
         (int(student_id),),
@@ -404,12 +404,12 @@ def fetch_student_by_id(student_id):
 
 def ensure_student_record_for_user(user, section=None):
     """Devuelve un students.id vÃ¡lido para un usuario alumno."""
-    target_section = str(section or user.get('section') or 'A').upper()
+    target_section = str(section if section is not None else (user.get('section') or '')).upper()
     candidate_id = user.get('student_id')
     if candidate_id:
         student = fetch_student_by_id(candidate_id)
         if student:
-            if str(student.get('section') or 'A').upper() != target_section:
+            if section is not None and str(student.get('section') or '').upper() != target_section:
                 _execute('UPDATE students SET section = %s WHERE id = %s', (target_section, int(student['id'])))
             return int(student['id'])
 
@@ -431,7 +431,7 @@ def ensure_student_record_for_user(user, section=None):
                      if normalized_name(f"{item.get('first_name', '')} {item.get('last_name', '')}") == target_name), None)
     if existing:
         student_id = int(existing['id'])
-        if str(existing.get('section') or 'A').upper() != target_section:
+        if section is not None and str(existing.get('section') or '').upper() != target_section:
             _execute('UPDATE students SET section = %s WHERE id = %s', (target_section, student_id))
     else:
         student_id = _execute(
