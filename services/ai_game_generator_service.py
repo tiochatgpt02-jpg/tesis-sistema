@@ -684,7 +684,7 @@ ESTRUCTURA JSON EXACTA:
         source_words = normalized_words(source_text)
         ignored = {
             'concepto', 'conceptos', 'material', 'tema', 'clase', 'actividad',
-            'juego', 'parte', 'ciclo', 'agua',
+            'juego', 'parte',
             'solo', 'solamente', 'tipo', 'tipos', 'segun', 'todos', 'todas',
             'tambien', 'tiene', 'tienen', 'puede', 'pueden', 'para', 'como',
             'esta', 'este', 'estos', 'estas',
