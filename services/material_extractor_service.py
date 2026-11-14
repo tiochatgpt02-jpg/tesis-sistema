@@ -127,6 +127,17 @@ class MaterialExtractorService:
         )
         declared_topic = topic_match.group(1).strip(' -•\t') if topic_match else ''
         main_title = declared_topic or (slide_titles[0] if slide_titles else os.path.splitext(os.path.basename(file_path))[0])
+        # Cover metadata identifies the document; it is not lesson content.
+        def educational_line(line):
+            value = re.sub(r'^[#*\-•\s]+', '', line).strip()
+            return bool(value) and not re.match(
+                r'^(?:prof(?:esor|esora)?\s*[:.]|docente\s*:|computaci[oó]n\s*$|'
+                r'tema\w*\s*:|\d+\s*[°ºo]?\s*(?:sec\.?|prim\.?|grado)\b)',
+                value, re.IGNORECASE)
+
+        key_points = [point for point in key_points if educational_line(point)]
+        raw_text_combined = '\n'.join(line for line in all_text_blocks if educational_line(line))
+        raw_text_combined = f'# {main_title}\n{raw_text_combined}'
         # Limpiar y filtrar puntos clave únicos
         unique_points = []
         seen = set()
