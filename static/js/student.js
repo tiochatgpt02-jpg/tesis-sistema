@@ -2539,7 +2539,7 @@ document.addEventListener('submit', async (e) => {
             const items = content.items || [];
             const categories = content.categories || [];
             interactionHtml = `
-                <div class="mb-4"><span class="game-kicker">Cada cosa en su lugar</span><p class="game-help">Arrastra las tarjetas hasta el grupo que les corresponde.</p>
+                <div class="mb-4"><span class="game-kicker">Cada cosa en su lugar</span><p class="game-help">Arrastra las tarjetas a su grupo, o pulsa una tarjeta y luego su grupo.</p>
                     <div class="d-flex flex-wrap gap-2 justify-content-center mb-3" id="drag-items-source">${items.map(item => `<button type="button" draggable="true" class="btn btn-outline-success fw-bold drag-item" data-item="${escapeText(item)}">${escapeText(item)}</button>`).join('')}</div>
                     <div class="row g-3">${categories.map(category => `<div class="col-md"><div class="drag-category h-100 p-3 rounded-4 border border-2 border-success-subtle bg-white" data-category="${escapeText(category)}"><strong class="d-block text-success mb-2">${escapeText(category)}</strong><div class="drop-items small text-muted">Suelta aquí</div></div></div>`).join('')}</div></div>
                     <button type="button" class="game-primary-btn mt-3" id="btn-submit-drag-ai"><i class="bi bi-check2-circle me-1"></i> Comprobar clasificación</button>
@@ -2695,14 +2695,46 @@ document.addEventListener('submit', async (e) => {
             });
         } else if (game.game_type === 'drag_drop') {
             let dragged = null;
+            const selectCard = item => {
+                dragged = item;
+                arena.querySelectorAll('.drag-item').forEach(card => {
+                    card.classList.toggle('active', card === item);
+                    card.setAttribute('aria-pressed', String(card === item));
+                });
+            };
+            const placeCard = zone => {
+                if (!dragged) return;
+                zone.querySelector('.drop-items')?.append(dragged);
+                dragged.classList.remove('active');
+                dragged.setAttribute('aria-pressed', 'false');
+                dragged = null;
+            };
             arena.querySelectorAll('.drag-item').forEach(item => {
-                item.addEventListener('dragstart', () => { dragged = item; });
+                item.setAttribute('aria-pressed', 'false');
+                item.addEventListener('click', () => selectCard(item));
+                item.addEventListener('dragstart', event => {
+                    selectCard(item);
+                    event.dataTransfer.setData('text/plain', item.dataset.item);
+                    event.dataTransfer.effectAllowed = 'move';
+                });
             });
             arena.querySelectorAll('.drag-category').forEach(zone => {
+                zone.tabIndex = 0;
+                zone.setAttribute('role', 'button');
+                zone.setAttribute('aria-label', `Colocar tarjeta en ${zone.dataset.category}`);
+                zone.addEventListener('click', event => {
+                    if (!event.target.closest('.drag-item')) placeCard(zone);
+                });
+                zone.addEventListener('keydown', event => {
+                    if (event.target === zone && ['Enter', ' '].includes(event.key)) {
+                        event.preventDefault();
+                        placeCard(zone);
+                    }
+                });
                 zone.addEventListener('dragover', event => event.preventDefault());
                 zone.addEventListener('drop', event => {
                     event.preventDefault();
-                    if (dragged) zone.querySelector('.drop-items')?.append(dragged);
+                    placeCard(zone);
                 });
             });
             arena.querySelector('#btn-submit-drag-ai')?.addEventListener('click', async () => {
