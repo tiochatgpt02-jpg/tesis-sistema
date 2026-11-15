@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from services.teacher_reports_service import GRADE_LABELS, build_academic_report
+from services.grading_policy_service import COMPONENTS
 
 
 EXCEL_COLUMNS = [
@@ -20,7 +21,7 @@ EXCEL_COLUMNS = [
 ]
 
 
-def _write_sheet(workbook, title: str, rows: List[Dict[str, Any]], subtitle: str = ''):
+def _write_sheet(workbook, title: str, rows: List[Dict[str, Any]], subtitle: str = '', components=False):
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
 
@@ -41,15 +42,17 @@ def _write_sheet(workbook, title: str, rows: List[Dict[str, Any]], subtitle: str
         'C': PatternFill('solid', fgColor='FECACA'),
     }
 
-    sheet.merge_cells('A1:H1')
+    columns = EXCEL_COLUMNS[:4] + list(COMPONENTS) + EXCEL_COLUMNS[-2:] if components else EXCEL_COLUMNS
+    last_column = get_column_letter(len(columns))
+    sheet.merge_cells(f'A1:{last_column}1')
     sheet['A1'] = title
     sheet['A1'].font = title_font
     if subtitle:
-        sheet.merge_cells('A2:H2')
+        sheet.merge_cells(f'A2:{last_column}2')
         sheet['A2'] = subtitle
 
     header_row = 4 if subtitle else 3
-    for index, (_key, label) in enumerate(EXCEL_COLUMNS, start=1):
+    for index, (_key, label) in enumerate(columns, start=1):
         cell = sheet.cell(header_row, index, label)
         cell.fill = header_fill
         cell.font = header_font
@@ -57,28 +60,21 @@ def _write_sheet(workbook, title: str, rows: List[Dict[str, Any]], subtitle: str
         cell.border = thin
 
     for row_index, row in enumerate(rows, start=header_row + 1):
-        values = [
-            row.get('n'),
-            row.get('code'),
-            row.get('student_name'),
-            f"{row.get('grade')}°",
-            row.get('activities'),
-            row.get('evaluations'),
-            row.get('average'),
-            row.get('level'),
-        ]
+        values = [f"{row.get('grade')}°" if key == 'grade' else
+                  row.get('components', {}).get(key) if components and key in dict(COMPONENTS) else row.get(key)
+                  for key, _ in columns]
         for col, value in enumerate(values, start=1):
             cell = sheet.cell(row_index, col, value)
             cell.border = thin
             cell.alignment = Alignment(horizontal='center' if col != 3 else 'left')
-            if col == 8:
+            if col == len(columns):
                 cell.fill = level_fills.get(str(value), PatternFill())
                 cell.font = Font(bold=True)
 
-    widths = [8, 14, 28, 12, 14, 16, 12, 16]
+    widths = [8, 14, 28, 12] + ([19] * 6 if components else [14, 16]) + [12, 16]
     for index, width in enumerate(widths, start=1):
         sheet.column_dimensions[get_column_letter(index)].width = width
-    sheet.auto_filter.ref = f'A{header_row}:H{header_row + max(len(rows), 1)}'
+    sheet.auto_filter.ref = f'A{header_row}:{last_column}{header_row + max(len(rows), 1)}'
     sheet.freeze_panes = f'A{header_row + 1}'
     return sheet
 
@@ -106,6 +102,7 @@ def build_excel_workbook(
                 GRADE_LABELS[grade_value],
                 report['rows'],
                 f"{report['period_label']} · Promedio {report['average']}",
+                components=bool(policy and policy.get('mode') == 'components'),
             )
             summary_rows.append({
                 'n': grade_value - 3,
@@ -125,6 +122,7 @@ def build_excel_workbook(
             GRADE_LABELS.get(int(grade), f'{grade}° Primaria'),
             report['rows'],
             f"{report['period_label']} · Promedio {report['average']}",
+            components=bool(policy and policy.get('mode') == 'components'),
         )
 
     buffer = BytesIO()

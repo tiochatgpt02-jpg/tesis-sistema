@@ -1,7 +1,8 @@
 from services.grading_policy_service import get_policy
+from services.bimester_grade_service import with_component_results, current_term
 from flask import Blueprint, jsonify, request, session
 
-from services.db_service import fetch_student_results
+from services.db_service import fetch_student_results, fetch_students
 from services.teacher_note_service import build_gradebook_summary
 
 teacher_notes_blueprint = Blueprint('teacher_notes', __name__, url_prefix='/teacher')
@@ -18,4 +19,10 @@ def api_notes_summary():
         date_from=payload.get('date_from'),
         date_to=payload.get('date_to'),
     )
-    return jsonify({**build_gradebook_summary(results, get_policy()), 'results': results})
+    policy = get_policy()
+    year, period = current_term()
+    students = fetch_students()
+    if payload.get('student_id'):
+        students = [row for row in students if int(row['id']) == int(payload['student_id'])]
+    results = with_component_results(students, results, policy, int(payload.get('period') or period), int(payload.get('year') or year))
+    return jsonify({**build_gradebook_summary(results, policy), 'results': results})

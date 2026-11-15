@@ -6,8 +6,13 @@
 <p>Los juegos son entrenamiento libre y nunca modifican notas. El último intento de cada práctica y examen identificado es el que cuenta.</p>
 {% if message %}<p role="status" class="alert alert-info">{{ message }}</p>{% endif %}
 {% if not policy %}<p class="alert alert-warning">Falta definir los pesos con el docente. Los promedios mostrados son provisionales.</p>{% endif %}
-<form method="post" class="card p-4"><label for="practice">Peso de las prácticas (%)</label>
-<input id="practice" class="form-control mb-3" name="practice_weight" type="number" min="1" max="49" value="{{ policy.practice_weight if policy else '' }}" required>
-<label for="exam">Peso de los exámenes (%)</label><input id="exam" class="form-control mb-3" name="exam_weight" type="number" min="51" max="99" value="{{ policy.exam_weight if policy else '' }}" required>
-<p>Ambos pesos deben sumar 100. Una nota final queda pendiente mientras falte evidencia en alguna categoría.</p><button class="btn btn-primary">Guardar pesos</button></form>
+<form method="post" action="/teacher/settings" class="card p-4" aria-labelledby="weights-title">
+<h2 id="weights-title" class="h5">Porcentajes de la nota bimestral</h2>
+{% for key,label in components %}
+<label for="weight-{{ key }}">{{ label }} (%)</label>
+<input id="weight-{{ key }}" class="form-control mb-3" name="{{ key }}" type="number" min="0" max="100" step="1" value="{{ policy.weights[key] if policy and policy.mode == 'components' else defaults[key] }}" required>
+{% endfor %}
+<p>Los seis porcentajes deben sumar 100. El examen debe pesar más que cada otro componente. La nota final queda pendiente mientras falte una nota requerida.</p>
+<button type="submit" class="btn btn-primary">Guardar pesos</button></form>
+<a href="/teacher/bimester-grades" class="d-block mt-3">Registrar notas por alumno y bimestre</a>
 <a href="/teacher/exam-reopening" class="d-block mt-3">Autorizar otro intento de examen</a></main></body></html>

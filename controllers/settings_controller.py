@@ -1,9 +1,59 @@
-from flask import Blueprint, jsonify, render_template, request, session
-from services.grading_policy_service import get_policy, save_policy
+from flask import Blueprint, jsonify, render_template, request, session, redirect, url_for, flash
+import secrets
+from services import bimester_grade_service as bimester
+from services.grading_policy_service import get_policy, save_policy, save_component_policy, COMPONENTS, DEFAULT_COMPONENT_WEIGHTS
 from services.learning_attempt_service import reopen_exam
 from services import db_service
 
 settings_blueprint = Blueprint('settings', __name__, url_prefix='/teacher')
+
+
+@settings_blueprint.route('/bimester-grades', methods=['GET', 'POST'])
+def bimester_grades():
+    if session.get('user_role') != 'teacher':
+        return jsonify({'error': 'No autorizado'}), 403
+    default_year, default_period = bimester.current_term()
+    values = request.form if request.method == 'POST' else request.args
+    try:
+        year, period, grade = bimester.validate_term(values.get('year', default_year), values.get('period', default_period), values.get('grade', 5))
+    except ValueError as exc:
+        return str(exc), 400
+    token = session.get('gradebook_csrf')
+    if not token:
+        token = session['gradebook_csrf'] = secrets.token_urlsafe(32)
+    error = None
+    if request.method == 'POST':
+        if not secrets.compare_digest(str(request.form.get('csrf_token') or ''), token):
+            return 'La sesión del formulario venció. Recarga la página.', 403
+        try:
+            if request.form.get('action') == 'sources':
+                bimester.save_sources(grade, year, period, request.form, session.get('user_id'))
+                flash('Fuentes guardadas. Las notas vinculadas usan el último intento del bimestre.', 'success')
+            elif request.form.get('action') == 'marks':
+                student_id = int(request.form.get('student_id') or 0)
+                student = db_service.fetch_student_by_id(student_id)
+                if not student or int(student.get('grade') or 0) != grade:
+                    raise ValueError('El alumno no corresponde al grado seleccionado.')
+                bimester.save_marks(student_id, year, period, request.form, session.get('user_id'))
+                flash('Notas del alumno guardadas.', 'success')
+            else:
+                raise ValueError('Acción no válida.')
+            return redirect(url_for('settings.bimester_grades', grade=grade, year=year, period=period), code=303)
+        except ValueError as exc:
+            error = str(exc)
+    students = [row for row in db_service.fetch_students() if int(row.get('grade') or 0) == grade]
+    policy = get_policy()
+    if not policy or policy.get('mode') != 'components':
+        policy = {'mode': 'components', 'weights': DEFAULT_COMPONENT_WEIGHTS}
+    rows = bimester.grade_rows(students, db_service.fetch_student_results(), year, period, policy)
+    _, sources = bimester.load_entries(year, period)
+    selected_sources = {row['component']: row['source_item'] for row in sources if int(row['grade']) == grade}
+    from services.teacher_reports_service import period_date_range
+    start, end, _ = period_date_range(str(period), year)
+    return render_template('bimester_grades.html', rows=rows, components=COMPONENTS, policy=policy,
+                           options=bimester.source_options(grade), selected_sources=selected_sources,
+                           grade=grade, year=year, period=period, date_from=start, date_to=end,
+                           csrf_token=token, error=error), (400 if error else 200)
 
 
 @settings_blueprint.route('/api/<source>/<int:material_id>/prepare-practice', methods=['POST'])
@@ -42,11 +92,13 @@ def academic_settings():
     message = None
     if request.method == 'POST':
         try:
-            save_policy(request.form.get('practice_weight'), request.form.get('exam_weight'))
+            save_component_policy({key: request.form.get(key) for key, _ in COMPONENTS})
             message = 'Pesos guardados. Los juegos no afectan las notas.'
         except (ValueError, TypeError) as exc:
-            return render_template('academic_settings.html', policy=get_policy(), message=str(exc)), 400
-    return render_template('academic_settings.html', policy=get_policy(), message=message)
+            return render_template('academic_settings.html', policy=get_policy(), components=COMPONENTS,
+                                   defaults=DEFAULT_COMPONENT_WEIGHTS, message=str(exc)), 400
+    return render_template('academic_settings.html', policy=get_policy(), components=COMPONENTS,
+                           defaults=DEFAULT_COMPONENT_WEIGHTS, message=message)
 
 
 @settings_blueprint.route('/api/assessments/<int:assessment_id>/students/<int:student_id>/reopen', methods=['POST'])

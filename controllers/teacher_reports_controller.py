@@ -1,4 +1,5 @@
 from services.grading_policy_service import get_policy
+from services.bimester_grade_service import with_component_results
 from flask import Blueprint, jsonify, request, send_file
 
 from services.db_service import fetch_all_topics, fetch_student_results, fetch_students
@@ -28,13 +29,15 @@ def api_reports_summary():
 @teacher_reports_blueprint.route('/api/reports/gradebook', methods=['GET'])
 def api_reports_gradebook():
     grade, section, period, _complete = _filters()
+    students = fetch_students()
+    policy = get_policy()
     report = build_academic_report(
-        fetch_students(),
-        fetch_student_results(),
+        students,
+        with_component_results(students, fetch_student_results(), policy, int(period)),
         grade=grade,
         section=section,
         period=period,
-        policy=get_policy(),
+        policy=policy,
     )
     return jsonify({'success': True, **report})
 
@@ -43,14 +46,15 @@ def api_reports_gradebook():
 def api_export_excel_file():
     grade, section, period, complete = _filters()
     students = fetch_students()
-    results = fetch_student_results()
+    policy = get_policy()
+    results = with_component_results(students, fetch_student_results(), policy, int(period))
     workbook = build_excel_workbook(
         students,
         results,
         grade=None if complete else grade,
         section=section,
         period=period,
-        policy=get_policy(),
+        policy=policy,
         complete=complete or not grade,
     )
     filename = excel_filename(grade, period, complete=complete or not grade)

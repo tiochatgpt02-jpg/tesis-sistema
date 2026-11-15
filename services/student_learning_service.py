@@ -173,8 +173,14 @@ def build_evaluation(topic, grade, student_name='Estudiante', performance=0):
 
 def build_student_progress(student_id, topics):
     from services.grading_policy_service import academic_average, get_policy
+    from services.bimester_grade_service import with_component_results, current_term
     policy = get_policy()
-    academic_grade = academic_average(db_service.fetch_student_results(student_id=student_id), policy)
+    results = db_service.fetch_student_results(student_id=student_id)
+    if policy and policy.get('mode') == 'components':
+        year, period = current_term()
+        student = db_service.fetch_student_by_id(student_id)
+        results = with_component_results([student] if student else [], results, policy, period, year)
+    academic_grade = academic_average(results, policy)
     progress = db_service.fetch_student_progress(student_id)
     activity_summary = db_service.fetch_student_activity_summary(student_id)
     topic_ids = {int(topic.get('id')) for topic in topics or [] if topic.get('id') is not None}

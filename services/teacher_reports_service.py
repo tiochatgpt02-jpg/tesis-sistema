@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from services.grading_policy_service import academic_notes, academic_average
+from services.grading_policy_service import academic_notes, academic_average, component_summary
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -81,10 +81,11 @@ def build_student_grade_rows(students: List[Dict[str, Any]], results: List[Dict[
             'code': student.get('student_code') or f'ALU-{student_id:04d}',
             'student_name': f'{first} {last}'.strip() or f'Estudiante {student_id}',
             'grade': int(student.get('grade') or 0),
-            'section': (student.get('section') or 'A').upper(),
+            'section': (student.get('section') or '').upper(),
             'activities': _average(activity_scores),
             'evaluations': _average(evaluation_scores),
             'average': average,
+            'components': component_summary(notes, policy)['scores'] if policy and policy.get('mode') == 'components' else {},
             'level': level['code'],
             'level_label': level['label'],
         })
@@ -116,7 +117,8 @@ def build_academic_report(
     filtered_results = [
         item for item in (results or [])
         if int(item.get('student_id') or 0) in student_ids
-        and date_from <= str(item.get('created_at') or '')[:10] <= date_to
+        and ((int(item.get('academic_year') or 0) == int(date_from[:4]) and str(item.get('period')) == str(period))
+             if item.get('grade_component') else date_from <= str(item.get('created_at') or '')[:10] <= date_to)
     ]
     rows = build_student_grade_rows(filtered_students, filtered_results, policy)
 
@@ -134,7 +136,7 @@ def build_academic_report(
         'period_label': period_label,
         'date_from': date_from,
         'date_to': date_to,
-        'average': _average(averages),
+        'average': _average(averages) if averages or not policy or policy.get('mode') != 'components' else None,
         'students_count': len(rows),
         'counts': {
             'destacado': counts['AD'],
