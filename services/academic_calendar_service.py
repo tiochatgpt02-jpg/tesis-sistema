@@ -7,6 +7,10 @@ from config import Config
 _calendars = {}
 _bounds = {}
 DEFAULT_PERIODS = ((3, 1, 5, 31), (6, 1, 7, 31), (8, 1, 10, 31), (11, 1, 12, 31))
+# MINEDU's 2026 teaching blocks, adapted to the start supplied by the user.
+# These are a reference for this pilot, not confirmed dates of the school.
+REFERENCE_PERIODS_2026 = ((3, 20, 5, 15), (5, 25, 7, 24), (8, 10, 10, 9), (10, 19, 12, 18))
+REFERENCE_SOURCE = 'https://cdn.www.gob.pe/uploads/document/file/9529291/7799833-orientaciones-para-el-inicio-del-ano-escolar-2026.pdf'
 
 
 def school_today():
@@ -37,14 +41,19 @@ def get_calendar(year):
             rows = conn.execute('SELECT period,date_from,date_to,confirmed FROM academic_calendar WHERE academic_year=%s ORDER BY period', (year,)).fetchall()
             bounds = conn.execute('SELECT date_from,date_to,source FROM school_year_bounds WHERE academic_year=%s', (year,)).fetchone()
     if len(rows) != 4:
+        defaults = REFERENCE_PERIODS_2026 if year == 2026 else DEFAULT_PERIODS
         rows = [dict(period=index, date_from=date(year, start_month, start_day),
                      date_to=date(year, end_month, end_day), confirmed=False)
-                for index, (start_month, start_day, end_month, end_day) in enumerate(DEFAULT_PERIODS, 1)]
+                for index, (start_month, start_day, end_month, end_day) in enumerate(defaults, 1)]
         if bounds:
             rows[0]['date_from'] = bounds['date_from']
             rows[-1]['date_to'] = bounds['date_to']
     result = {'year': year, 'periods': [dict(row) for row in rows],
               'confirmed': all(row['confirmed'] for row in rows), 'annual_bounds': dict(bounds) if bounds else None}
+    reference = year == 2026 and all(
+        (row['date_from'],row['date_to']) == (date(year,a,b),date(year,c,d))
+        for row,(a,b,c,d) in zip(rows,REFERENCE_PERIODS_2026))
+    result['reference_source'] = REFERENCE_SOURCE if reference else None
     cache[year] = result
     return result
 

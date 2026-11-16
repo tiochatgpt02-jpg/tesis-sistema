@@ -1,141 +1,26 @@
-# Guía Rápida de Demostración para Tesista, Docente y Jurado
+# Guía para demostrar el sistema publicado
 
-Esta guía está diseñada para que una tesista o docente **sin conocimientos técnicos profundos de programación** pueda realizar una demostración fluida, profesional y académicamente rigurosa del sistema ante un jurado evaluador o directivos del colegio en **5 minutos**.
+Abrir https://aula-computacion-tesis.onrender.com con anticipación. Render Free puede tardar en despertar. No se necesita iniciar Ollama ni PostgreSQL en las laptops. Usar las cuentas de docente y alumno administradas en la hoja privada; las credenciales locales antiguas no son las del despliegue.
 
----
+## Recorrido docente y alumno
 
-## 1. Preparación y Puesta en Marcha (1 Clic)
+1. En la laptop docente, abrir el tema del grado y mostrar su presentación. Para la demostración preparada se ha utilizado SmartArt en quinto. Los materiales de otros grados deben ser confirmados por el docente.
+2. Generar un juego desde esa presentación, revisar que pregunta, alternativas y respuesta correspondan al PPT y editar con los formularios. Si aparece respaldo, identificarlo como tal; no afirmar que proviene de IA.
+3. Aprobar y publicar. En la laptop del alumno, abrir la clase y resolver el juego. Mostrar que los puntos de entrenamiento no se incorporan como notas.
+4. Crear prácticas y examen desde el material. Seleccionar tipo y cantidad de preguntas, revisar claves y publicar. El alumno abre la vista previa y luego pulsa Comenzar. Una práctica admite repetición; el examen tiene treinta minutos desde Comenzar y requiere reapertura docente para otro intento.
+5. En la libreta, elegir grado, año y bimestre. Vincular práctica 1, práctica 2 y examen; registrar manualmente tareas, participación y libro. Las notas automáticas provienen del último intento del periodo. Una nota pendiente no es cero.
+6. Mostrar el historial institucional: cuarto tiene quince registros del primer bimestre de 2026 en AD/A/B/C, conservados sin conversión numérica. No confundirlos con la libreta nueva ni con las mediciones pretest y postest de la tesis.
+7. Mostrar calendario y cierre. Las fechas referenciales de 2026 están sin confirmar; no marcar aprobación escolar para obtener una demostración de cierre. Usar un entorno ficticio para esa prueba mientras falta la confirmación.
+8. Mostrar la ficha ML y su aviso de referencia pública. No prometer una probabilidad determinada ni precisión con los alumnos del colegio.
 
-No es necesario abrir consolas complejas ni memorizar comandos de terminal.
+Usar cuentas ficticias para crear notas de prueba. No llenar registros reales para eliminar pendientes. Al terminar, cerrar sesión en ambos equipos y conservar la evidencia autorizada del piloto.
 
-1. Ubique la carpeta del proyecto en su computadora.
-2. Haga **doble clic** en el archivo:
-   ```text
-   iniciar_sistema.bat
-   ```
-3. El sistema verificará el entorno, levantará el servidor local y **abrirá automáticamente su navegador web** en la pantalla de inicio de sesión (`http://127.0.0.1:5000/login`).
+## Respuestas breves al jurado
 
-> [!TIP]
-> Si en algún momento desea apagar el sistema, simplemente cierre la ventana negra de la consola o presione `Ctrl + C`.
+- Arquitectura técnica: monolito modular Flask con Blueprints, servicios, plantillas y PostgreSQL remoto. [Expediente TOGAF 9.2](arquitectura-togaf-9-2.md) relaciona negocio, datos, aplicaciones, tecnología y gobierno; no acredita certificación ni uso retrospectivo desde el inicio.
+- IA generativa: crea borradores basados en PPT; el docente decide qué se publica. Resolver una actividad no llama a la API.
+- Machine Learning: usa un benchmark público de secundaria. Su evaluación revisada separa elección y prueba; no está validado institucionalmente.
+- Datos reales: las cuentas y el historial literal están en PostgreSQL. Tener 51 cuentas no demuestra que 51 personas participaron en un nuevo piloto.
+- Privacidad: se aplican roles, acceso al propio historial y hashes de contraseñas. Estas medidas no equivalen por sí solas a una certificación de cumplimiento legal.
 
----
-
-## 2. Guion de Demostración Paso a Paso (5 Minutos)
-
-```mermaid
-flowchart LR
-    A["1. Login en 1 Clic"] --> B["2. Panel Docente (Inicio)"]
-    B --> C["3. Reportes y Predicción IA"]
-    C --> D["4. Factores Explicables (XAI)"]
-    D --> E["5. Ficha Técnica para Jurado"]
-```
-
----
-
-### Minuto 1: Inicio de Sesión y Acceso Demostrativo
-* **Pantalla**: [Ingreso al Sistema](http://127.0.0.1:5000/login).
-* **Qué hacer**:
-  1. Mostrar al jurado la pantalla de bienvenida con el logotipo del colegio.
-  2. En el recuadro inferior de *Acceso Rápido para Evaluación*, hacer clic en el botón azul:  
-     **`[ Ingresar como Profesor (Demo) ]`**.
-  3. El sistema autocompletará las credenciales (`profesor1` / `Admin123`) e iniciará sesión automáticamente.
-* **Qué decir**:
-  > *"El sistema cuenta con roles diferenciados para docentes y estudiantes. Para esta demostración ingresaremos con el rol docente para auditar las herramientas pedagógicas y el motor de predicción temprana."*
-
----
-
-### Minuto 2: El Panel Principal del Docente
-* **Pantalla**: Panel de Inicio del Docente.
-* **Qué hacer**:
-  1. Mostrar el saludo personalizado, las estadísticas de aula (total alumnos, progreso general) y la lista de estudiantes.
-  2. En la sección de accesos directos, señalar la tarjeta destacada:  
-     **`[ Predicción de riesgo IA ]`** y hacer clic en ella.
-* **Qué decir**:
-  > *"Desde su panel principal, el docente tiene una vista panorámica del rendimiento del aula y acceso inmediato al subsistema de alerta temprana mediante Inteligencia Artificial."*
-
----
-
-### Minuto 3: Inferencia de Riesgo Académico en Tiempo Real
-* **Pantalla**: Sección de Reportes y Predicción Académica.
-* **Qué hacer**:
-  1. Mostrar la tabla de calificaciones vigesimales ($0$ a $20$) por alumno.
-  2. Notar que el sistema **selecciona automáticamente al primer alumno** y carga su análisis predictivo inmediatamente en la tarjeta de *"Predicción académica"*.
-  3. Hacer clic en diferentes estudiantes de la tabla (por ejemplo, un estudiante con promedio alto y luego uno con promedio bajo).
-  4. Observar cómo la tarjeta de predicción actualiza en tiempo real:
-     * **Nivel de Riesgo**: Badge visual (*Bajo* en verde, *Medio* en ámbar, *Alto* en rojo).
-     * **Probabilidad**: Porcentaje calibrado de riesgo (ejemplo: $98.8\%$ o $4.2\%$).
-     * **Recomendación pedagógica personalizada**: Sugerencias de tutoría focalizada o mantenimiento de ritmo.
-* **Qué decir**:
-  > *"Al seleccionar cualquier estudiante, el modelo supervisado analiza su trayectoria formativa y proyecta su probabilidad de vulnerabilidad académica antes del cierre del periodo escolar, permitiendo una intervención docente oportuna antes de que repruebe."*
-
----
-
-### Minuto 4: Inteligencia Artificial Explicable (XAI)
-* **Pantalla**: Bloque de *Factores principales* dentro de la tarjeta de predicción.
-* **Qué hacer**:
-  1. Señalar la lista de factores con flechas rojas (`↓`).
-  2. Leer en voz alta los factores generados para un alumno en riesgo alto:
-     * *↓ Bajo rendimiento en evaluaciones formativas (promedio menor a 11)*
-     * *↓ Tendencia descendente en las últimas calificaciones*
-     * *↓ Última calificación registrada en nivel reprobatorio*
-* **Qué decir**:
-  > *"Una de las principales críticas a los sistemas de IA en educación es que funcionan como cajas negras misteriosas. Nuestro sistema incorpora IA Explicable (XAI): no solo entrega una alerta, sino que le explica al profesor exactamente qué variables formativas están detonando el riesgo para orientar la tutoría."*
-
----
-
-### Minuto 5: Ficha Técnica y Preguntas del Jurado
-* **Pantalla**: Botón y Modal de Ficha Técnica.
-* **Qué hacer**:
-  1. Dentro de la tarjeta de predicción, hacer clic en el botón:  
-     **`[ Ver Ficha Técnica del Modelo (Métricas y Metodología para Jurado) ]`**.
-  2. Se desplegará el modal interactivo con las métricas académicas oficiales.
-  3. Mostrar los indicadores clave:
-     * **Algoritmo**: *Random Forest Classifier* (Ensemble de 100 árboles de decisión).
-     * **Sensibilidad (Recall)**: **90.48%** (Capacidad de detectar a 9 de cada 10 alumnos en riesgo).
-     * **Exactitud (Accuracy)**: **91.15%**.
-     * **ROC-AUC**: **0.9605**.
-     * **Validación**: Temporal *Out-of-Time* (Entrenado con cohorte 2023, evaluado con cohorte 2024, 1,044 alumnos).
-* **Qué decir**:
-  > *"El modelo fue rigurosamente seleccionado tras comparar cuatro familias algorítmicas (Regresión Logística, Árboles de Decisión, Random Forest y Gradient Boosting), priorizando la Sensibilidad pedagógica para asegurar que ningún estudiante vulnerable quede sin apoyo."*
-
----
-
-## 3. Respuestas Preparadas para Preguntas Comunes del Jurado
-
-### Pregunta 1: *"¿Por qué usaron Random Forest y no Deep Learning o Redes Neuronales Profundas?"*
-* **Respuesta**:
-  > *"Por el principio de parsimonia y el tamaño muestral de la educación escolar. Las redes neuronales profundas requieren decenas de miles de registros para no sobreajustar y son cajas negras de difícil interpretación. Random Forest ofreció un ROC-AUC sobresaliente de 0.9605, computación ultra ligera (inferencia en milisegundos) y explicabilidad directa de las variables que el docente necesita conocer."*
-
-### Pregunta 2: *"¿Por qué priorizaron Sensibilidad (Recall) en vez de Exactitud (Accuracy)?"*
-* **Respuesta**:
-  > *"Porque en educación la matriz de costos es asimétrica: un Falso Negativo (un alumno en riesgo al que no detectamos y termina reprobando o desertando) tiene un costo humano y académico gravísimo. En cambio, un Falso Positivo solo significa que le brindamos tutoría y refuerzo preventivo a un alumno que tal vez no lo necesitaba con tanta urgencia."*
-
-### Pregunta 3: *"¿Cómo protegen la privacidad de los estudiantes según la ley peruana?"*
-* **Respuesta**:
-  > *"El sistema cumple estrictamente con la Ley N.º 29733 (Ley de Protección de Datos Personales de Perú). La matriz de características que procesa el modelo de Machine Learning está completamente anonimizada: no contiene nombres, apellidos, DNI ni identificadores de base de datos. Solo procesa métricas agregadas de desempeño, frecuencias y tendencias temporales."*
-
-### Pregunta 4: *"¿Cómo garantizan que el modelo no hizo trampa mirando notas del futuro?"*
-* **Respuesta**:
-  > *"El pipeline implementa una política estricta de corte temporal (anti-leakage) con un parámetro `cutoff_date`. Al evaluar a un estudiante o entrenar el modelo, cualquier calificación, asistencia o actividad registrada después de esa fecha queda 100% filtrada e invisible para el extractor de características."*
-
-### Pregunta 5: *"¿Este modelo ya está validado institucionalmente con este colegio?"*
-* **Respuesta (Honestidad Académica)**:
-  > *"No, y es fundamental remarcarlo: el modelo actual es un benchmark técnico probado sobre el reconocido dataset público de Cortez & Silva (2008), adaptado rigurosamente a la escala vigesimal peruana (CNEB, corte en 10.0). Nuestra arquitectura está diseñada para que, en cuanto el colegio consolide su propio historial institucional de notas, el sistema se reentrene con un solo comando sin necesidad de modificar una sola línea de código fuente."*
-
----
-
-## 4. Resumen de Credenciales de Acceso
-
-| Rol | Usuario | Contraseña | Propósito en la Demostración |
-| :--- | :--- | :--- | :--- |
-| **Profesor** | `profesor1` | `Admin123` | Evaluar panel de control, gestión de notas, predicción IA y ficha técnica. |
-| **Alumno** | `alumno1` | `Alumno123` | Mostrar la vista del estudiante con sus temas, actividades y retroalimentación. |
-
----
-
-## 5. Cierre de la Demostración
-
-Para cerrar la demostración ante el jurado:
-1. Concluir destacando el enfoque **Human-in-the-Loop** (el sistema no reemplaza al docente, lo empodera con información temprana y objetiva).
-2. Cerrar la sesión haciendo clic en el icono de salida en la esquina superior derecha (`Cerrar sesión`).
-3. Detener el servidor en la consola con `Ctrl + C`.
+La mejora de aprendizaje reportada por una investigación y la precisión predictiva del software son evidencias diferentes. Las cifras de la tesis deben contrastarse con sus instrumentos originales.

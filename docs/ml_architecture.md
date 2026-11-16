@@ -1,150 +1,27 @@
-# Arquitectura del Sistema de Machine Learning Escolar
+# Arquitectura del subsistema de Machine Learning
 
-## 1. Visión General de la Arquitectura
+El sistema separa generación de contenido y predicción tabular. Groq genera borradores docentes desde material; scikit-learn estima un resultado usando un artefacto entrenado. Ninguno sustituye la evaluación del docente.
 
-El subsistema de Machine Learning de **Sistema IA** está diseñado bajo los principios de modularidad, reproducibilidad, explicabilidad y desacoplamiento estricto entre los datos de investigación/benchmark y los datos institucionales del colegio.
+## Recorrido del código
 
-El objetivo central es proporcionar predicción temprana de riesgo académico antes de la culminación del periodo lectivo, permitiendo la intervención pedagógica oportuna sin comprometer la privacidad del estudiante.
+| Paso | Archivo | Responsabilidad |
+| --- | --- | --- |
+| Petición docente | controllers/teacher_controller.py | Riesgo del alumno y ficha del modelo |
+| Petición del alumno | controllers/student_controller.py | Estado del propio alumno |
+| Adaptación de respuesta | services/ml_service.py | Conserva estados y exige alumno identificado |
+| Lectura de historial | services/ml/feature_service.py | Consulta PostgreSQL y delega la extracción |
+| Extracción compartida | ml/pipeline/feature_builder.py | Dieciocho variables con corte y validación |
+| Registro | services/ml/model_registry.py | Selecciona fuente y carga artefacto en memoria |
+| Inferencia | services/ml/prediction_service.py y ml/pipeline/predictor.py | Probabilidad, clase, estados y avisos |
+| Preparación UCI | ml/scripts/download_and_prepare_benchmark.py | Un curso oficial y procedencia verificable |
+| Entrenamiento | ml/run_pipeline.py y ml/pipeline/trainer.py | Validación interna, selección y prueba separada |
 
-```
-+-----------------------------------------------------------------------------------+
-|                              Capa de Presentación                                 |
-|   Dashboard Docente (HTML/Jinja2/Bootstrap) <---> teacher.js (Tarjeta Predictiva) |
-+------------------------------------------^----------------------------------------+
-                                           | HTTP JSON REST
-+------------------------------------------v----------------------------------------+
-|                               Capa de Control Flask                               |
-|   GET  /teacher/api/students/<id>/risk   |   POST /teacher/api/predict-student    |
-+------------------------------------------^----------------------------------------+
-                                           | Inferencia
-+------------------------------------------v----------------------------------------+
-|                         Capa de Servicios de Inferencia                           |
-|       RiskPredictionService <-------------> AcademicRiskPredictor (Pipeline)     |
-|              |                                        ^                           |
-|              v                                        |                           |
-|       ModelRegistry (Singleton / Cache) --------------+                           |
-|       (Resuelve ML_DATASET_SOURCE: benchmark vs institutional)                    |
-+-----------------------------------------------------------------------------------+
-                                           | Carga de Artefactos
-+------------------------------------------v----------------------------------------+
-|                          Capa de Artefactos y Modelos                             |
-|   ml/models/benchmark/ (model.joblib, metadata.json, training_results.json)       |
-|   ml/models/institutional/ (model.joblib, metadata.json)                          |
-+-----------------------------------------------------------------------------------+
-                                           ^ Entrenamiento
-+------------------------------------------|----------------------------------------+
-|                          Capa de Pipeline Reproducible                            |
-|   data_loader.py ---> feature_builder.py ---> preprocessing.py ---> trainer.py    |
-|                             |                      |                              |
-|                             v                      v                              |
-|                       features.json        evaluator.py (ROC-AUC, Recall, Matriz) |
-+-----------------------------------------------------------------------------------+
-```
+El artefacto activo de benchmark está en ml/models/benchmark/. El institucional está separado y no tiene un modelo validado con los registros disponibles. La ficha lee el algoritmo y las métricas del artefacto, sin nombres ni porcentajes de respaldo inventados. La tabla de candidatos corresponde a validación interna; el resultado final se conserva separado en test_metrics.
 
----
+## Contratos y límites
 
-## 2. Componentes del Pipeline (`ml/pipeline/`)
+Los identificadores sirven para consultar y separar registros; no son entradas predictivas. No se entrena dentro de una petición del navegador. Un error de consulta, falta de historial, modelo ausente o fallo de inferencia conserva su estado explícito. No se sustituye con una regla de progreso ni con 50 %.
 
-### 2.1. `data_loader.py` (Ingesta y Validación)
-* Carga de archivos CSV crudos e institucionales.
-* Validación obligatoria de columnas: `student_code`, `academic_year`, `period`, `subject`, `event_date`, `activity_type`, `score`, `final_status`.
-* Validación de tipos de datos y rangos vigesimales ($0.0 \le \text{nota} \le 20.0$).
-* Validación de exclusión de identificadores personales en la matriz $X$.
+El benchmark usa división por alumno, sin afirmar cohortes históricas. La partición temporal institucional requiere periodos reales suficientes. El registro literal AD/A/B/C conserva su propio esquema y no se fuerza dentro de un importador numérico.
 
-### 2.2. `preprocessing.py` (Transformadores scikit-learn)
-* Construcción de objetos `Pipeline` con `SimpleImputer(strategy='median')` y `StandardScaler()`.
-* **Garantía metodológica**: Cero preprocesamiento manual fuera de `sklearn.pipeline.Pipeline`, evitando data leakage.
-
-### 2.3. `feature_builder.py` (Ingeniería de Variables y Anti-Leakage)
-* Extrae las 18 variables predictivas canónicas agregadas a partir de eventos formativos.
-* Aplica filtro temporal estricto mediante `cutoff_date`: solo los eventos con fecha menor o igual al corte participan en el cálculo.
-* Serializa `features.json` para garantizar coherencia dimensional entre entrenamiento e inferencia.
-
-### 2.4. `trainer.py` (Entrenamiento Multimodelo y Selección)
-* Entrena y compara 4 familias supervisadas:
-  1. `LogisticRegression`
-  2. `DecisionTreeClassifier`
-  3. `RandomForestClassifier`
-  4. `GradientBoostingClassifier`
-* Aplica validación cruzada temporal (Train en cohortes pasadas, Test en out-of-time holdout) o `GroupShuffleSplit`.
-* Guarda `training_results.json`, `validation_metadata.json`, `metadata.json` y el modelo ganador en `model.joblib`.
-* **Criterio de selección automática**: Prioridad 1: Recall de clase de riesgo ($y=1$); Prioridad 2: F1-Score ($y=1$); Prioridad 3: ROC-AUC.
-
-### 2.5. `evaluator.py` (Métricas y Diagnóstico)
-* Calcula Exactitud, Precisión, Recall, F1-Score, Matriz de Confusión y ROC-AUC.
-* Extrae la importancia relativa de variables para los algoritmos ganadores.
-
-### 2.6. `predictor.py` (Motor de Inferencia y Explicabilidad)
-* Encapsula la carga del artefacto `.joblib` y traduce la salida numérica del clasificador en explicaciones en lenguaje natural para los docentes (`main_factors`) y descriptores técnicos para APIs (`explanation`).
-
-### 2.7. `ml/run_pipeline.py` (Orquestador de Comando Único)
-* Script ejecutor de nivel superior que automatiza los 4 pasos del ciclo de vida en una sola instrucción:
-  1. Ingesta y validación de calidad de datos (`data_loader`).
-  2. Extracción anti-leakage y serialización de `features.json` (`feature_builder`).
-  3. Entrenamiento y comparación multimodelo con selección del ganador (`trainer`).
-  4. Diagnóstico de inferencia y prueba de explicabilidad (`predictor`).
-* Permite alternar entre el entorno de benchmark y el institucional mediante `--source {benchmark,institutional}` sin necesidad de comandos manuales concatenados.
-
----
-
-## 3. Separación de Fuentes de Datos (`ML_DATASET_SOURCE`)
-
-El sistema implementa dos entornos desacoplados gobernados por la variable de configuración `ML_DATASET_SOURCE`:
-
-| Característica | Entorno `benchmark` | Entorno `institutional` |
-| :--- | :--- | :--- |
-| **Propósito** | Demostración técnica y experimental | Producción escolar e investigación final |
-| **Dataset Crudo** | `ml/datasets/benchmark/raw/` | `ml/datasets/institutional/raw/` |
-| **Dataset Procesado** | `ml/datasets/benchmark/processed/` | `ml/datasets/institutional/processed/` |
-| **Modelos Serializados** | `ml/models/benchmark/` | `ml/models/institutional/` |
-| **Origen de Datos** | UCI Student Performance (Cortez & Silva) | Calificaciones históricas del colegio |
-| **Estado Inicial** | Modelo entrenado y disponible | `MODEL_NOT_AVAILABLE` (esperando datos) |
-
-La conmutación se realiza sin alterar código, únicamente modificando `.env`:
-```env
-ML_DATASET_SOURCE=benchmark      # Para pruebas técnicas y demostración
-# o
-ML_DATASET_SOURCE=institutional  # Para producción con datos del colegio
-```
-
----
-
-## 4. Contratos de API REST
-
-### Endpoint Institucional de Riesgo por Alumno
-* **Ruta**: `GET /teacher/api/students/<int:student_id>/risk`
-* **Parámetros Query**: `cutoff_date` (opcional, formato `YYYY-MM-DD`)
-* **Autenticación**: Sesión de docente requerida
-* **Respuesta Exitosa (HTTP 200)**:
-```json
-{
-  "student_id": 15,
-  "student_name": "Juan Pérez",
-  "prediction": {
-    "risk_level": "HIGH",
-    "probability": 0.9875
-  },
-  "model": {
-    "name": "RandomForest",
-    "version": "v1_20260917",
-    "dataset": "benchmark"
-  },
-  "explanation": [
-    "low evaluation performance",
-    "recent grades downward trend",
-    "last recorded score in failing range"
-  ],
-  "main_factors": [
-    "Bajo rendimiento en evaluaciones formativas (promedio menor a 11)",
-    "Tendencia descendente en las últimas calificaciones",
-    "Última calificación registrada en nivel reprobatorio (5.5/20)"
-  ],
-  "risk_level": "Alto"
-}
-```
-
----
-
-## 5. Principios de Seguridad y Privacidad
-1. **Anonimización Estricta**: `student_code`, `student_id`, nombres, DNI y correos son excluidos por aserción matemática de la matriz de características $X$.
-2. **Anti-Leakage**: La fecha de corte temporal (`cutoff_date`) aísla de manera estricta los eventos formativos del target final de periodo, impidiendo que calificaciones futuras influyan en la predicción.
+Consultar [metodología y resultados](ml_methodology.md) y [arquitectura con TOGAF](arquitectura-togaf-9-2.md). La separación modular permite ubicar y comprobar una función; no demuestra por sí sola validez científica o adopción institucional del marco.

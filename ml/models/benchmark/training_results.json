@@ -1,36 +1,38 @@
 {
   "models": [
     {
+      "name": "DecisionTree",
+      "accuracy": 0.9074,
+      "precision": 0.8288333333333334,
+      "recall": 0.9038,
+      "f1": 0.8636,
+      "roc_auc": 0.9565666666666667
+    },
+    {
       "name": "RandomForest",
-      "accuracy": 0.9115,
-      "precision": 0.9,
-      "recall": 0.9048,
-      "f1": 0.9024,
-      "roc_auc": 0.9605
+      "accuracy": 0.9012333333333333,
+      "precision": 0.8170666666666667,
+      "recall": 0.8974000000000001,
+      "f1": 0.8546333333333335,
+      "roc_auc": 0.9619
     },
     {
       "name": "GradientBoosting",
-      "accuracy": 0.9115,
-      "precision": 0.9,
-      "recall": 0.9048,
-      "f1": 0.9024,
-      "roc_auc": 0.9572
+      "accuracy": 0.9012333333333333,
+      "precision": 0.8170666666666667,
+      "recall": 0.8974000000000001,
+      "f1": 0.8546333333333335,
+      "roc_auc": 0.9598333333333334
     },
     {
       "name": "LogisticRegression",
-      "accuracy": 0.9115,
-      "precision": 0.913,
-      "recall": 0.8889,
-      "f1": 0.9008,
-      "roc_auc": 0.9676
-    },
-    {
-      "name": "DecisionTree",
-      "accuracy": 0.9115,
-      "precision": 0.913,
-      "recall": 0.8889,
-      "f1": 0.9008,
-      "roc_auc": 0.9543
+      "accuracy": 0.9156333333333334,
+      "precision": 0.8548333333333332,
+      "recall": 0.891,
+      "f1": 0.8720666666666667,
+      "roc_auc": 0.9624666666666667
     }
-  ]
+  ],
+  "metric_scope": "inner_training_validation",
+  "test_used_for_selection": false
 }

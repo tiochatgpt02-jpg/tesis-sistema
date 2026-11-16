@@ -168,16 +168,6 @@ def build_training_dataset(
 
     outcomes = db_service.fetch_academic_outcomes(academic_year=academic_year, period=period)
     if not outcomes:
-        default_raw = ROOT / "ml" / "datasets" / "raw" / "uci_student_performance_institutional.csv"
-        if default_raw.is_file():
-            print(f"No se encontraron outcomes en BD. Utilizando dataset benchmark: {default_raw}")
-            return build_dataset_from_csv(
-                source_csv=default_raw,
-                cutoff_date=cutoff_date,
-                output_path=output_path,
-                academic_year=academic_year,
-                period=period,
-            )
         print("No se encontraron registros en 'student_academic_outcomes'.")
         print("Debe importar datos históricos reales usando: python ml/scripts/import_historical_data.py <archivo.csv>")
         return 0

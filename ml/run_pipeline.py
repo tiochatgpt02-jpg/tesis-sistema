@@ -14,6 +14,8 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import json
+from hashlib import sha256
 from datetime import datetime
 from pathlib import Path
 import sys
@@ -41,6 +43,8 @@ def run_ml_pipeline(
     """Ejecuta el pipeline integral paso a paso con trazabilidad total."""
     start_time = time.time()
     source_clean = source.strip().lower()
+    if source_clean not in ('benchmark','institutional'):
+        raise ValueError('Fuente de datos no valida.')
 
     print("=" * 75)
     print("      SISTEMA IA - ORQUESTADOR DEL PIPELINE DE MACHINE LEARNING")
@@ -59,16 +63,13 @@ def run_ml_pipeline(
 
     # Identificar archivo fuente
     if source_clean == 'benchmark':
-        raw_csv = raw_dir / "uci_student_performance_institutional.csv"
-        if not raw_csv.is_file():
-            # Fallback a ubicación previa
-            legacy_raw = ROOT / "ml" / "datasets" / "raw" / "uci_student_performance_institutional.csv"
-            if legacy_raw.is_file():
-                raw_csv = legacy_raw
+        raw_csv = raw_dir / 'uci_student_performance_events.csv'
     else:
         raw_csv = raw_dir / "school_academic_history.csv"
 
     if not raw_csv.is_file():
+        if source_clean=='benchmark':
+            raise FileNotFoundError('Prepara la referencia oficial con python ml/scripts/download_and_prepare_benchmark.py')
         raise FileNotFoundError(
             f"No se encontró el dataset crudo en: {raw_csv}\n"
             f"Para el entorno '{source_clean}', debe importar primero los datos utilizando:\n"
@@ -80,6 +81,11 @@ def run_ml_pipeline(
     # -------------------------------------------------------------
     print("\n[PASO 1/4] Validando esquema y calidad de datos crudos...")
     records, quality_report = load_raw_csv(raw_csv)
+    provenance={}
+    if source_clean=='benchmark':
+        provenance=json.loads((raw_dir/'dataset_metadata.json').read_text(encoding='utf-8'))
+        if provenance.get('events_sha256') != sha256(raw_csv.read_bytes()).hexdigest():
+            raise ValueError('La huella del benchmark no coincide con su procedencia; vuelve a preparar la referencia.')
     print(f"  -> Archivo verificado:      {raw_csv.name}")
     print(f"  -> Total filas analizadas:  {quality_report['total_rows_read']}")
     print(f"  -> Registros válidos:       {quality_report['valid_events']}")
@@ -112,6 +118,7 @@ def run_ml_pipeline(
         output_model_dir=models_dir,
         split_strategy=split_strategy,
         dataset_name=source_clean,
+        dataset_provenance=provenance,
     )
 
     best_name = training_summary.get('selected_algorithm', 'Desconocido')
@@ -145,6 +152,8 @@ def run_ml_pipeline(
         'score_trend': -1.0,
     }
     diag_res = predictor.predict(sample_risk_features)
+    if not diag_res.get('success') or diag_res.get('risk_probability') is None:
+        raise RuntimeError('El modelo no supero la comprobacion de inferencia.')
     print("  -> Diagnóstico de prueba (Perfil con notas < 11.0):")
     print(f"     Nivel de Riesgo:     {diag_res.get('risk_level')} ({diag_res.get('prediction', {}).get('risk_level')})")
     print(f"     Probabilidad:        {diag_res.get('risk_probability') * 100:.1f}%")

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
@@ -40,7 +40,7 @@ def parse_datetime(dt_val: Any) -> Optional[datetime]:
     if not dt_val:
         return None
     if isinstance(dt_val, datetime):
-        return dt_val
+        return dt_val.astimezone(timezone.utc).replace(tzinfo=None) if dt_val.tzinfo else dt_val
     raw = str(dt_val).strip()
     if not raw:
         return None
@@ -50,9 +50,26 @@ def parse_datetime(dt_val: Any) -> Optional[datetime]:
         except ValueError:
             continue
     try:
-        return datetime.fromisoformat(raw)
+        parsed = datetime.fromisoformat(raw)
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None) if parsed.tzinfo else parsed
     except Exception:
         return None
+
+
+def parse_cutoff(value):
+    if value is None or value == '':
+        return None
+    parsed = parse_datetime(value)
+    if parsed is None:
+        raise ValueError('La fecha de corte no es válida.')
+    if isinstance(value,str) and len(value.strip()) == 10:
+        parsed = parsed.replace(hour=23,minute=59,second=59,microsecond=999999)
+    return parsed
+
+
+def item_datetime(item):
+    return parse_datetime(item.get('event_date') or item.get('created_at')
+                          or item.get('submitted_at') or item.get('reviewed_at'))
 
 
 def filter_by_cutoff(items: List[Dict[str, Any]], cutoff_dt: Optional[datetime]) -> List[Dict[str, Any]]:
@@ -61,8 +78,8 @@ def filter_by_cutoff(items: List[Dict[str, Any]], cutoff_dt: Optional[datetime])
         return list(items)
     filtered = []
     for item in items:
-        dt = parse_datetime(item.get('event_date') or item.get('created_at'))
-        if dt is None or dt <= cutoff_dt:
+        dt = item_datetime(item)
+        if dt is not None and dt <= cutoff_dt:
             filtered.append(item)
     return filtered
 
@@ -74,14 +91,14 @@ def extract_features_from_records(
     cutoff_date: Union[str, datetime, None] = None,
 ) -> Dict[str, float]:
     """Calcula las 18 variables canónicas usando exclusivamente eventos <= cutoff_date."""
-    cutoff_dt = parse_datetime(cutoff_date)
+    cutoff_dt = parse_cutoff(cutoff_date)
 
     valid_notes = filter_by_cutoff(notes or [], cutoff_dt)
     valid_submissions = filter_by_cutoff(submissions or [], cutoff_dt)
     valid_reviews = filter_by_cutoff(materials_reviewed or [], cutoff_dt)
 
     # Orden cronológico
-    valid_notes.sort(key=lambda x: parse_datetime(x.get('event_date') or x.get('created_at')) or datetime.min)
+    valid_notes.sort(key=lambda x: item_datetime(x) or datetime.min)
 
     total_attempts = len(valid_notes)
     eval_notes = [n for n in valid_notes if str(n.get('activity_type', '')).lower() == 'evaluaciones']
@@ -91,10 +108,15 @@ def extract_features_from_records(
     scores = []
     for n in valid_notes:
         try:
-            val = float(n.get('score', 0.0) or 0.0)
-            scores.append(max(0.0, min(20.0, val)))
+            raw = n.get('score')
+            if raw is None or isinstance(raw,bool) or str(raw).strip() == '':
+                raise ValueError()
+            val = float(raw)
+            if not math.isfinite(val) or not 0 <= val <= 20:
+                raise ValueError()
+            scores.append(val)
         except (ValueError, TypeError):
-            pass
+            raise ValueError('Las variables predictivas requieren notas numéricas finitas de 0 a 20.') from None
 
     eval_scores = [scores[i] for i, n in enumerate(valid_notes) if str(n.get('activity_type', '')).lower() == 'evaluaciones']
     act_scores = [scores[i] for i, n in enumerate(valid_notes) if str(n.get('activity_type', '')).lower() == 'actividades']
@@ -159,23 +181,31 @@ def determine_target_risk(outcome: Dict[str, Any]) -> int:
     """Clasifica el resultado final en 1 (Riesgo Académico / Desaprobado) o 0 (Aprobado)."""
     if outcome.get('is_at_risk') is not None:
         try:
-            return int(outcome['is_at_risk'])
+            number = float(outcome['is_at_risk'])
+            if number not in (0,1):
+                raise ValueError()
+            return int(number)
         except (ValueError, TypeError):
-            pass
+            raise ValueError('El resultado de riesgo debe ser 0 o 1.') from None
 
     score = outcome.get('final_score')
     if score is not None:
         try:
-            if float(score) < 11.0:
+            number = float(score)
+            if not math.isfinite(number) or not 0 <= number <= 20:
+                raise ValueError()
+            if number < 11.0:
                 return 1
             return 0
         except (ValueError, TypeError):
-            pass
+            raise ValueError('La nota final debe estar entre 0 y 20.') from None
 
     status = str(outcome.get('final_status', '')).strip().lower()
     if status in {'desaprobado', 'en_riesgo', 'reprobado', 'requiere_recuperacion', 'c'}:
         return 1
-    return 0
+    if status in {'aprobado'}:
+        return 0
+    raise ValueError('Falta un resultado final verificado para definir el objetivo.')
 
 
 def build_processed_matrix(

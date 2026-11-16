@@ -71,75 +71,10 @@ def build_prediction_payload(
                 'summary': summary,
             }
 
-    # Si no se pasó student_id, verificar disponibilidad del modelo
-    if not service.is_available():
-        return {
-            'success': False,
-            'code': 'MODEL_NOT_AVAILABLE',
-            'status': 'MODEL_NOT_AVAILABLE',
-            'message': (
-                'El modelo de riesgo académico todavía no ha sido entrenado. '
-                'Se requieren datos históricos reales del colegio para su entrenamiento.'
-            ),
-            'student_name': name,
-            'score': round(float(score or 0), 2),
-            'level': 'No disponible',
-            'risk_level': 'No disponible',
-            'recommendation': 'El sistema está preparado para entrenar un modelo supervisado real en cuanto se proporcione el dataset institucional.',
-            'summary': 'Modelo predictivo de Machine Learning no disponible. Pendiente de entrenamiento con datos reales.',
-        }
-
-    # Modelo disponible sin student_id: inferencia usando características normalizadas
-    from services.grade_service import normalize_to_scale_20
-    score_20 = normalize_to_scale_20(score or 0)
-    features = {
-        'total_attempts': 1,
-        'evaluation_count': 1 if activity_type == 'evaluaciones' else 0,
-        'activities_count': 1 if activity_type == 'actividades' else 0,
-        'games_count': 1 if activity_type == 'juegos' else 0,
-        'average_score': score_20,
-        'average_evaluation_score': score_20 if activity_type == 'evaluaciones' else 0.0,
-        'average_activity_score': score_20 if activity_type == 'actividades' else 0.0,
-        'min_score': score_20,
-        'max_score': score_20,
-        'last_score': score_20,
-        'score_std': 0.0,
-        'score_trend': 0.0,
-        'total_correct_answers': 0,
-        'total_wrong_answers': 0,
-        'accuracy_ratio': 0.0,
-        'average_time_spent_seconds': 0.0,
-        'materials_reviewed_count': 0,
-        'submissions_count': 0,
-    }
-    prediction = service.predict_for_features(features)
-    if not prediction.get('success') or prediction.get('risk_probability') is None:
-        return _unavailable_payload(prediction, name, score_20)
-    risk_level = prediction.get('risk_level', 'Bajo')
-    level_map = {'Bajo': 'excelente', 'Medio': 'bueno', 'Alto': 'necesita apoyo'}
-    level = level_map.get(risk_level, 'bueno')
-    prob = prediction.get('risk_probability')
-    prob_text = f" con probabilidad de riesgo estimada de {prob * 100:.1f}%" if prob is not None else ""
-    return {
-        'success': True,
-        'student_name': name,
-        'score': round(score_20, 2),
-        'level': level,
-        'risk_level': risk_level,
-        'risk_probability': prob,
-        'model_version': prediction.get('model_version', 'v1'),
-        'model': prediction.get('model', {}),
-        'validation_scope': prediction.get('validation_scope'),
-        'notice': prediction.get('notice'),
-        'main_factors': prediction.get('main_factors', []),
-        'explanation': prediction.get('explanation', []),
-        'recommendation': (
-            "Recomendación: mantener el ritmo de aprendizaje actual." if risk_level == 'Bajo'
-            else "Recomendación: acompañar con actividades guiadas." if risk_level == 'Medio'
-            else "Recomendación: priorizar refuerzo en áreas críticas."
-        ),
-        'summary': f"{name} presenta riesgo {risk_level}{prob_text}.",
-    }
+    return _unavailable_payload({
+        'code': 'STUDENT_REQUIRED',
+        'message': 'Selecciona un alumno para consultar su historial. Una nota aislada no basta para construir una prediccion academica.',
+    }, name, score)
 
 
 def predict_student_performance(progress: float, activity_type: str = 'actividades') -> Dict[str, Any]:

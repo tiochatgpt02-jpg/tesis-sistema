@@ -15,7 +15,7 @@ Promedio: `0.10*tareas + 0.10*participación + 0.10*libro + 0.10*práctica1 + 0.
 
 Las prácticas admiten repetición. El examen tiene treinta minutos desde Comenzar, un intento y recuperación autorizada por el docente. Una edición posterior vuelve la evaluación a revisión; el intento ya iniciado conserva preguntas y claves originales.
 
-Las fechas se editan en /teacher/academic-calendar. Se comunicaron inicio anual 20 de marzo y fin 18 de diciembre de 2026; los cortes interiores siguen provisionales. No se debe confirmar el calendario sin aceptación del colegio. El cierre exige confirmación.
+Las fechas se editan en /teacher/academic-calendar. Se comunicaron inicio anual 20 de marzo y fin 18 de diciembre de 2026; se adoptan provisionalmente los bloques lectivos MINEDU: 20/03–15/05, 25/05–24/07, 10/08–09/10 y 19/10–18/12. Solo el primer inicio se adapta a la fecha comunicada para este proyecto. No es un promedio nacional ni una confirmación escolar. No se debe confirmar el calendario sin aceptación del colegio. El cierre exige confirmación.
 
 Los juegos no aportan calificaciones. Las ausencias quedan pendientes mientras no haya regla académica aprobada. Reportes y Excel usan las mismas reglas de la libreta. El historial AD/A/B/C se consulta separado, sin transformación a escala numérica.
 

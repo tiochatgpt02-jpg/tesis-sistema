@@ -251,10 +251,15 @@ def teacher_ml_status():
         results = {}
 
     models = results.get('models', [])
-    winner_name = status_data.get('name', 'RandomForest')
-    winner_metrics = next((m for m in models if m.get('name') == winner_name), None)
-    if not winner_metrics and models:
-        winner_metrics = models[0]
+    winner_name = status_data.get('name') or status_data.get('selected_algorithm') or 'No disponible'
+    measured = status_data.get('test_metrics') or {}
+    winner_metrics = {
+        'accuracy': measured.get('accuracy'), 'recall': measured.get('positive_class_recall'),
+        'f1': measured.get('positive_class_f1'), 'roc_auc': measured.get('roc_auc'),
+    }
+    import math
+    winner_metrics = {key:value if isinstance(value,(int,float)) and math.isfinite(value) and 0<=value<=1 else None
+                      for key,value in winner_metrics.items()}
 
     return render_template(
         'ml_status.html',
@@ -264,6 +269,7 @@ def teacher_ml_status():
         winner_metrics=winner_metrics,
         models=models,
         source=svc.registry.source,
+        comparison_scope=results.get('metric_scope'),
     )
 
 

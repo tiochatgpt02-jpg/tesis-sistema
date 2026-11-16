@@ -21,7 +21,7 @@ Seis sesiones HTTP independientes, dos rondas, commit bd09126a653e356189369ba3e4
 | Progreso | 12 | 0.289 | 0.312 | 0 |
 | Riesgo | 12 | 0.172 | 0.372 | 0 |
 
-Despertar inicial: 53.102 s. El login incluye autenticación y primera carga. Se elimina una lectura redundante del perfil y se reutiliza durante cada petición; no se reduce la seguridad del hash. Hace falta la comparación posterior antes de atribuir una mejora cuantificada.
+Despertar inicial: 53.102 s. El login incluye autenticación y primera carga. Se elimina una lectura redundante del perfil y se reutiliza durante cada petición; no se reduce la seguridad del hash. La comparación posterior figura a continuación; dos mediciones no permiten atribuir causalmente sus diferencias a una sola optimización.
 
 Los percentiles son de una muestra pequeña de peticiones; no son Core Web Vitals de campo ni prueban 51 usuarios simultáneos. No hay medición de campo p75 de LCP, INP y CLS. Referencia: https://web.dev/articles/vitals.
 
@@ -32,3 +32,16 @@ Solo hay un bimestre literal. Su nota final es la moda de los cinco indicadores 
 Se conocen límites anuales del 20 de marzo al 18 de diciembre; faltan cortes interiores confirmados, material oficial por grado, piloto humano con evidencia y aceptación académica. Documentar estos hitos no los completa.
 
 Render Free puede suspenderse y su disco es efímero; los datos persisten en PostgreSQL externo. Restricciones: https://render.com/docs/free. La versión activa debe contrastarse con el SHA remoto en la verificación de publicación; cambios locales no implican despliegue terminado.
+
+
+## Comprobación posterior en la publicación 712ad71
+
+Seis sesiones, mismo tipo de carga y ninguna nota real modificada. Panel: mediana 1.354 s y P95 1.459 s; login con primera redirección: 6.880 s y 7.005 s; progreso: 0.323 s y 0.412 s; riesgo: 0.179 s y 0.239 s. Cero errores en las 42 peticiones. La mediana del login disminuyó, mientras la del panel aumentó 0.175 s: no se afirma una mejora uniforme ni causal.
+
+La web publicada verificó conexión PostgreSQL, roles, acceso al historial propio y bloqueo ajeno, dos prácticas y un examen con calificación, persistencia y reapertura. Las evaluaciones y resultados temporales de la cuenta ficticia se limpiaron. Un juego real desde el PPT de SmartArt se generó en 1.110 s y respondió al jugar en 0.150 s; se comprobó que no añadió notas y se eliminó la prueba temporal.
+
+## Revisión metodológica del 16 de noviembre
+
+La cifra antigua de sensibilidad del benchmark no era una evaluación independiente de la selección: se reemplaza por el protocolo y artefactos descritos en [metodología](ml_methodology.md). Un único curso UCI oficial, 486 observaciones de entrenamiento y 163 de prueba; elección por validación interna sin acceso al test. La sensibilidad final observada es 80.49 %, no una promesa para este colegio.
+
+El usuario autorizó fechas referenciales mientras consigue las del colegio. Se usan los bloques lectivos de [MINEDU 2026](https://cdn.www.gob.pe/uploads/document/file/9529291/7799833-orientaciones-para-el-inicio-del-ano-escolar-2026.pdf), adaptando el primer inicio al 20 de marzo. Permanecen sin confirmar y no sustituyen el calendario aprobado de la institución.

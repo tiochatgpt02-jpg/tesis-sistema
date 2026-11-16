@@ -235,113 +235,26 @@ def train_and_select_best_model(
     test_period: Optional[str] = None,
     test_size: float = 0.25,
     random_state: int = 42,
+    dataset_name: str = 'unverified',
 ) -> Dict[str, Any]:
-    print(f"\n--- Iniciando Pipeline de Entrenamiento Supervisado ---")
-    print(f"Cargando dataset desde: {dataset_path}")
-    X, y, groups, feature_cols, metadata = load_dataset(dataset_path)
-
-    n_samples, n_features = X.shape
-    unique_students = len(set(groups))
-    positives = int(np.sum(y == 1))
-    negatives = int(np.sum(y == 0))
-
-    print(f"Observaciones: {n_samples} | Características en X: {n_features} | Estudiantes únicos: {unique_students}")
-    print(f"Features predictivas activas ({len(feature_cols)}): {feature_cols}")
-    print(f"Seguridad: Identificadores excluidos de X (usados solo para partición y agrupamiento).")
-    print(f"Balance de clases: Negativo={negatives} ({(negatives/n_samples)*100:.1f}%), Positivo/Riesgo={positives} ({(positives/n_samples)*100:.1f}%)")
-
-    # Separación Train / Test
-    train_idx, test_idx, strategy_used, test_period_used = split_dataset(
-        X, y, groups, metadata,
-        split_strategy=split_strategy,
-        test_period=test_period,
-        test_size=test_size,
-        random_state=random_state,
-    )
-
-    print(f"\nEstrategia de Evaluación: {strategy_used.upper()}")
-    if strategy_used == 'temporal':
-        print(f"  Periodo de Evaluación (Test): {test_period_used} ({len(test_idx)} muestras)")
-        train_periods = sorted(list(set(metadata[i]['academic_period'] for i in train_idx)), key=parse_period_sort_key)
-        print(f"  Periodos de Entrenamiento (Train): {train_periods} ({len(train_idx)} muestras)")
-    else:
-        print(f"  GroupShuffleSplit por student_id (Train: {len(train_idx)}, Test: {len(test_idx)}, test_size={test_size})")
-
-    X_train, X_test = X[train_idx], X[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
-
-    candidates = build_candidate_pipelines(feature_cols)
-    results = {}
-    best_name = None
-    best_pipeline = None
-    best_f1_risk = -1.0
-
-    print("\n--- Comparación de Modelos Candidatos ---")
-    for name, pipeline in candidates.items():
-        pipeline.fit(X_train, y_train)
-
-        y_pred = pipeline.predict(X_test)
-        y_proba = None
-        if hasattr(pipeline, 'predict_proba'):
-            try:
-                y_proba = pipeline.predict_proba(X_test)[:, 1]
-            except Exception:
-                y_proba = None
-
-        metrics = compute_classification_metrics(y_test, y_pred, y_proba)
-        results[name] = metrics
-
-        f1_risk = metrics.get('positive_class_f1', 0.0)
-        recall_risk = metrics.get('positive_class_recall', 0.0)
-        acc = metrics.get('accuracy', 0.0)
-        print(f"Modelo: {name:<22} | Acc: {acc:.3f} | Recall Riesgo: {recall_risk:.3f} | F1 Riesgo: {f1_risk:.3f}")
-
-        # Criterio de selección: optimizar F1 de la clase positiva (riesgo)
-        if f1_risk > best_f1_risk:
-            best_f1_risk = f1_risk
-            best_name = name
-            best_pipeline = pipeline
-
-    print(f"\nModelo Seleccionado: {best_name} (F1 Riesgo = {best_f1_risk:.3f})")
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    model_dest = output_dir / 'student_risk_pipeline.joblib'
-    meta_dest = output_dir / 'metadata.json'
-
-    joblib.dump(best_pipeline, model_dest)
-    print(f"Artefacto serializado guardado en: {model_dest}")
-
-    metadata_out = {
-        'available': True,
-        'status': 'MODEL_AVAILABLE',
-        'version': f'v1_{datetime.now().strftime("%Y%m%d")}',
-        'selected_algorithm': best_name,
-        'split_strategy': strategy_used,
-        'temporal_test_period': test_period_used,
-        'trained_at': datetime.now().isoformat(),
-        'dataset_path': str(dataset_path),
-        'features': feature_cols,
-        'excluded_identifiers': ['student_id', 'student_code', 'academic_year', 'period', 'cutoff_date'],
-        'test_metrics': results[best_name],
-        'comparison_results': results,
-        'dataset_summary': {
-            'total_samples': n_samples,
-            'unique_students': unique_students,
-            'positive_class_count': positives,
-            'negative_class_count': negatives,
-        },
-    }
-
-    with meta_dest.open('w', encoding='utf-8') as f:
-        json.dump(metadata_out, f, indent=2, ensure_ascii=False)
-    print(f"Metadatos guardados en: {meta_dest}")
-
+    # Keep the historical command compatible while sharing the reviewed protocol.
+    from ml.pipeline.trainer import train_candidate_models
+    metadata_out = train_candidate_models(dataset_path, output_dir, split_strategy=split_strategy,
+                                           test_period=test_period, dataset_name=dataset_name,
+                                           test_size=test_size,random_state=random_state)
+    metadata_out['temporal_test_period'] = metadata_out['validation_info'].get('test_period')
+    metadata_out['excluded_identifiers'] = ['student_id','student_code','academic_year','period','cutoff_date']
+    output_dir = Path(output_dir)
+    import shutil
+    shutil.copy2(output_dir/'model.joblib', output_dir/'student_risk_pipeline.joblib')
+    (output_dir/'metadata.json').write_text(json.dumps(metadata_out,indent=2),encoding='utf-8')
     return metadata_out
 
 
 def main():
     parser = argparse.ArgumentParser(description="Entrena y compara modelos supervisados para riesgo académico.")
-    parser.add_argument("--dataset", type=Path, default=ROOT / "ml" / "datasets" / "processed" / "training_dataset.csv", help="Ruta al CSV procesado.")
+    parser.add_argument("--dataset", type=Path, default=ROOT / "ml" / "datasets" / "benchmark" / "processed" / "training_dataset.csv", help="Ruta al CSV procesado.")
+    parser.add_argument('--source',choices=['benchmark','institutional','unverified'],default='benchmark')
     parser.add_argument("--output-dir", type=Path, default=ROOT / "ml" / "models", help="Directorio destino de artefactos.")
     parser.add_argument("--split-strategy", choices=["temporal", "group"], default="temporal", help="Estrategia de evaluación (temporal o por grupo de alumnos).")
     parser.add_argument("--test-period", type=str, default=None, help="Periodo académico para conjunto de prueba (ej. '2024-B2').")
@@ -361,6 +274,7 @@ def main():
             args.output_dir,
             split_strategy=args.split_strategy,
             test_period=args.test_period,
+            dataset_name=args.source,
         )
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

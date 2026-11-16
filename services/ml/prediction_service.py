@@ -79,7 +79,7 @@ class RiskPredictionService:
             'features_used': res.get('features_used', {}),
             'validation_scope': source,
             'notice': ('Modelo de referencia: sus resultados no constituyen una validación con alumnos del colegio.'
-                       if source == 'benchmark' else 'Consulta el informe de validación del modelo institucional.'),
+                       if source != 'institutional' else 'Consulta el informe de validación del modelo institucional.'),
         }
 
     def predict_for_student(
@@ -108,6 +108,11 @@ class RiskPredictionService:
 
         try:
             features = FeatureService.extract_features_for_student(student_id=student_id, cutoff_date=cutoff_date)
+        except ValueError:
+            result = self._get_predictor()._unavailable_prediction(
+                'INVALID_FEATURES', 'Revisa la fecha de corte y las notas numéricas del historial.')
+            result['student_id'] = int(student_id)
+            return result
         except Exception:
             result = self._get_predictor()._unavailable_prediction(
                 'FEATURE_DATA_UNAVAILABLE', 'No se pudo consultar el historial académico. Inténtalo nuevamente.')

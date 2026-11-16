@@ -10,6 +10,7 @@ Responsable de:
 from __future__ import annotations
 
 import csv
+import math
 from datetime import datetime
 from pathlib import Path
 import re
@@ -31,7 +32,8 @@ MANDATORY_EVENT_COLUMNS: List[str] = [
 DISALLOWED_IN_X: Set[str] = {
     'student_id', 'student_code', 'id', 'user_id', 'codigo_estudiante', 'dni',
     'first_name', 'last_name', 'email', 'phone', 'academic_year', 'period',
-    'academic_period', 'cutoff_date', 'target_risk', 'target', 'risk_level'
+    'academic_period', 'cutoff_date', 'target_risk', 'target', 'risk_level',
+    'is_at_risk', 'final_status', 'final_score', 'final_grade', 'student_name'
 }
 
 
@@ -115,7 +117,7 @@ def load_raw_csv(csv_path: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
             if score_val is not None and str(score_val).strip() != '':
                 try:
                     score_float = float(str(score_val).strip())
-                    if score_float < 0.0 or score_float > 20.0:
+                    if not math.isfinite(score_float) or score_float < 0.0 or score_float > 20.0:
                         invalid_rows += 1
                         continue
                 except ValueError:
@@ -218,11 +220,15 @@ def load_training_matrix(
                 except ValueError:
                     feat_vec.append(np.nan)
 
-        target_raw = r.get('target_risk') or r.get('is_at_risk') or r.get('target', 0)
+        target_raw = next((r[key] for key in ('target_risk','is_at_risk','target')
+                           if r.get(key) is not None and str(r[key]).strip() != ''),None)
         try:
-            target = int(float(str(target_raw).strip()))
+            number = float(str(target_raw).strip())
+            if number not in (0,1):
+                raise ValueError()
+            target = int(number)
         except (ValueError, TypeError):
-            target = 0
+            raise ValueError('Cada fila de entrenamiento requiere un resultado binario verificado de 0 o 1.') from None
 
         student_code = (r.get('student_code') or str(r.get('student_id', idx))).strip()
         year = r.get('academic_year')

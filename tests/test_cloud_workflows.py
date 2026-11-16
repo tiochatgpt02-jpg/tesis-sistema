@@ -117,7 +117,7 @@ def test_games_do_not_inflate_grade_and_overview_is_mean():
 def test_report_excludes_other_bimesters():
     year=datetime.now().year
     report=build_academic_report([{'id':1,'grade':5}],
-        [{'student_id':1,'score':10,'activity_type':'evaluaciones','created_at':f'{year}-03-10'},
+        [{'student_id':1,'score':10,'activity_type':'evaluaciones','created_at':f'{year}-03-20'},
          {'student_id':1,'score':20,'activity_type':'evaluaciones','created_at':f'{year}-08-10'}],period='1')
     assert report['rows'][0]['average']==10
 

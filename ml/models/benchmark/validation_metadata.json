@@ -1,10 +1,30 @@
 {
-  "strategy": "temporal",
+  "strategy": "group_split",
   "random_state": 42,
-  "train_period": [
-    "2023-B1"
-  ],
-  "test_period": "2024-B1",
-  "train_samples": 626,
-  "test_samples": 418
+  "group_column": "student_code",
+  "train_samples": 486,
+  "test_samples": 163,
+  "unique_students": 649,
+  "requested_strategy": "group",
+  "selection": "inner_cross_validation_on_training_only",
+  "selection_folds": 3,
+  "test_used_for_selection": false,
+  "group_overlap": 0,
+  "inner_partitions": [
+    {
+      "train_samples": 324,
+      "validation_samples": 162,
+      "group_overlap": 0
+    },
+    {
+      "train_samples": 324,
+      "validation_samples": 162,
+      "group_overlap": 0
+    },
+    {
+      "train_samples": 324,
+      "validation_samples": 162,
+      "group_overlap": 0
+    }
+  ]
 }

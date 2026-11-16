@@ -23,11 +23,12 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import numpy as np
+from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import GroupShuffleSplit, StratifiedGroupKFold, StratifiedKFold
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -71,6 +72,8 @@ def partition_data(
         'strategy': split_strategy,
         'random_state': random_state,
     }
+    if split_strategy not in ('temporal','group'):
+        raise ValueError('Selecciona particion temporal o por grupo.')
 
     if split_strategy == 'temporal' and len(unique_periods) >= 2:
         selected_test = test_period if (test_period and test_period in unique_periods) else unique_periods[-1]
@@ -78,9 +81,6 @@ def partition_data(
 
         test_idx = np.array([i for i, p in enumerate(row_periods) if p == selected_test], dtype=int)
         train_idx = np.array([i for i, p in enumerate(row_periods) if p != selected_test and parse_period_sort_key(p) < test_key], dtype=int)
-
-        if len(train_idx) == 0:
-            train_idx = np.array([i for i, p in enumerate(row_periods) if p != selected_test], dtype=int)
 
         y_train_classes = len(set(y[train_idx])) if len(train_idx) > 0 else 0
         y_test_classes = len(set(y[test_idx])) if len(test_idx) > 0 else 0
@@ -94,6 +94,9 @@ def partition_data(
                 'test_samples': len(test_idx),
             })
             return train_idx, test_idx, val_meta
+
+    if split_strategy == 'temporal':
+        raise ValueError('La validacion temporal requiere periodos anteriores reales y ambas clases en entrenamiento y prueba.')
 
     # Fallback o selección explícita de GroupShuffleSplit por estudiante
     unique_students = len(set(groups))
@@ -113,6 +116,26 @@ def partition_data(
     return train_idx, test_idx, val_meta
 
 
+def selection_folds(X, y, groups):
+    """Inner folds only. Callers must pass the outer training partition."""
+    if set(y) != {0,1}:
+        raise ValueError('El entrenamiento requiere ambas clases de resultado.')
+    class_groups=[len(set(groups[y==label])) for label in (0,1)]
+    count=min(3,min(class_groups))
+    if count<2:
+        raise ValueError('Faltan alumnos por clase para seleccionar un modelo sin usar la prueba final.')
+    if len(set(groups))==len(groups):
+        splitter=StratifiedKFold(n_splits=count,shuffle=True,random_state=42)
+        folds=list(splitter.split(X,y))
+    else:
+        splitter=StratifiedGroupKFold(n_splits=count,shuffle=True,random_state=42)
+        folds=list(splitter.split(X,y,groups))
+    for train,validation in folds:
+        if set(groups[train]) & set(groups[validation]) or set(y[train])!={0,1} or set(y[validation])!={0,1}:
+            raise ValueError('No hay datos suficientes para pliegues de seleccion separados por alumno y con ambas clases.')
+    return folds
+
+
 def build_candidate_classifiers() -> Dict[str, Any]:
     """Instancia las 4 familias de algoritmos supervisados para comparación."""
     return {
@@ -129,32 +152,45 @@ def train_candidate_models(
     split_strategy: str = 'temporal',
     test_period: Optional[str] = None,
     dataset_name: str = 'benchmark',
+    dataset_provenance: Optional[Dict[str, Any]] = None,
+    test_size: float = 0.25,
+    random_state: int = 42,
 ) -> Dict[str, Any]:
     """Pipeline completo de entrenamiento, evaluación, selección y guardado."""
     X, y, groups, feature_names, metadata = load_training_matrix(dataset_path)
 
+    requested_strategy=split_strategy
+    if dataset_name=='benchmark':
+        split_strategy='group'
     train_idx, test_idx, val_meta = partition_data(
-        X, y, groups, metadata, split_strategy=split_strategy, test_period=test_period
+        X, y, groups, metadata, split_strategy=split_strategy, test_period=test_period,
+        test_size=test_size, random_state=random_state,
     )
 
     X_train, y_train = X[train_idx], y[train_idx]
     X_test, y_test = X[test_idx], y[test_idx]
+    if set(y_train)!={0,1} or set(y_test)!={0,1}:
+        raise ValueError('La particion necesita ambas clases; no se informa una evaluacion incompleta.')
+    folds=selection_folds(X_train,y_train,groups[train_idx])
+    val_meta.update(requested_strategy=requested_strategy,selection='inner_cross_validation_on_training_only',
+                    selection_folds=len(folds),test_used_for_selection=False,
+                    group_overlap=len(set(groups[train_idx]) & set(groups[test_idx])))
+    val_meta['inner_partitions']=[{'train_samples':len(train),'validation_samples':len(validation),
+                                 'group_overlap':0} for train,validation in folds]
 
     classifiers = build_candidate_classifiers()
     results_list: List[Dict[str, Any]] = []
-    trained_pipelines: Dict[str, Any] = {}
-    model_metrics: Dict[str, Dict[str, Any]] = {}
 
     for name, clf in classifiers.items():
-        pipe = create_classification_pipeline(clf, numeric_features=feature_names)
-        pipe.fit(X_train, y_train)
-        trained_pipelines[name] = pipe
-
-        y_pred = pipe.predict(X_test)
-        y_proba = pipe.predict_proba(X_test)[:, 1] if hasattr(pipe, 'predict_proba') else None
-
-        metrics = compute_classification_metrics(y_test, y_pred, y_proba)
-        model_metrics[name] = metrics
+        fold_metrics=[]
+        for inner_train,validation in folds:
+            pipe=create_classification_pipeline(clone(clf),numeric_features=feature_names)
+            pipe.fit(X_train[inner_train],y_train[inner_train])
+            prediction=pipe.predict(X_train[validation])
+            probability=pipe.predict_proba(X_train[validation])[:,1]
+            fold_metrics.append(compute_classification_metrics(y_train[validation],prediction,probability))
+        metrics={key:float(np.mean([item[key] for item in fold_metrics])) for key in
+                 ('accuracy','positive_class_precision','positive_class_recall','positive_class_f1','roc_auc')}
 
         results_list.append({
             'name': name,
@@ -174,8 +210,9 @@ def train_candidate_models(
         reverse=True,
     )
     best_candidate_name = results_list[0]['name']
-    best_pipeline = trained_pipelines[best_candidate_name]
-    best_metrics = model_metrics[best_candidate_name]
+    best_pipeline=create_classification_pipeline(clone(classifiers[best_candidate_name]),numeric_features=feature_names)
+    best_pipeline.fit(X_train,y_train)
+    best_metrics=compute_classification_metrics(y_test,best_pipeline.predict(X_test),best_pipeline.predict_proba(X_test)[:,1])
 
     # Extraer importancia de características
     importances = extract_feature_importances(best_pipeline, feature_names)
@@ -189,7 +226,7 @@ def train_candidate_models(
     # 2. Guardar training_results.json
     results_dest = output_model_dir / 'training_results.json'
     with results_dest.open('w', encoding='utf-8') as f:
-        json.dump({'models': results_list}, f, indent=2)
+        json.dump({'models': results_list,'metric_scope':'inner_training_validation','test_used_for_selection':False}, f, indent=2)
 
     # 3. Guardar validation_metadata.json
     val_dest = output_model_dir / 'validation_metadata.json'
@@ -207,7 +244,7 @@ def train_candidate_models(
         'split_strategy': val_meta.get('strategy'),
         'validation_info': val_meta,
         'trained_at': datetime.now().isoformat(),
-        'dataset_path': str(dataset_path),
+        'dataset_path': dataset_path.relative_to(ROOT).as_posix() if dataset_path.is_relative_to(ROOT) else dataset_path.name,
         'features': feature_names,
         'feature_importances': importances,
         'test_metrics': best_metrics,
@@ -215,12 +252,17 @@ def train_candidate_models(
         'total_samples': len(y),
         'train_samples': len(train_idx),
         'test_samples': len(test_idx),
+        'evaluation_protocol': 'Student-group holdout; selection by inner cross-validation on training only' if dataset_name=='benchmark'
+                               else 'Temporal or group holdout; selection by inner cross-validation on training only',
+        'institutional_validation': False if dataset_name=='benchmark' else None,
+        'metric_scope': 'independent_holdout_of_selected_model',
+        'dataset_provenance': dataset_provenance or {},
     }
     meta_dest = output_model_dir / 'metadata.json'
     with meta_dest.open('w', encoding='utf-8') as f:
         json.dump(metadata_payload, f, indent=2, ensure_ascii=False)
 
-    print(f"\n--- Comparación Multimodelo Completada ({dataset_name}) ---")
+    print(f"\n--- Comparacion de validacion interna ({dataset_name}) ---")
     for r in results_list:
         print(f"Modelo: {r['name']:<18} | Acc: {r['accuracy']:.4f} | Recall: {r['recall']:.4f} | F1: {r['f1']:.4f} | ROC-AUC: {r['roc_auc']:.4f}")
     print(f"\nModelo Ganador Seleccionado: {best_candidate_name} (Recall: {best_metrics['positive_class_recall']:.4f})")

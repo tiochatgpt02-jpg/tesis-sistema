@@ -38,6 +38,11 @@ def test_real_literal_history_auto_assessments_and_frozen_closure(monkeypatch):
             uid = conn.execute("INSERT INTO users(username,password_hash,role) VALUES('teacher_fixture','unused','teacher') RETURNING id").fetchone()['id']
             conn.execute("INSERT INTO users(username,password_hash,role,first_name,grade,student_id) VALUES('student_fixture','unused','student','Alumno ficticio',5,%s)", (sid,))
             topic = conn.execute("INSERT INTO topics(title,grade,status) VALUES('Word',5,'Publicado') RETURNING id").fetchone()['id']
+            # Reapplying reference dates must not replace a teacher's edits.
+            conn.execute("UPDATE academic_calendar SET date_to='2026-05-14' WHERE academic_year=2026 AND period=1")
+            conn.execute((root/'sql/migrations/postgresql/20261116_provisional_calendar.sql').read_text())
+            reference = conn.execute('SELECT date_to,confirmed FROM academic_calendar WHERE academic_year=2026 AND period=1').fetchone()
+            assert str(reference['date_to']) == '2026-05-14' and reference['confirmed'] is False
         monkeypatch.setattr(Config, 'USE_MOCK_DATA', False)
         monkeypatch.setattr(db_service, 'get_connection', connect)
         ratings = {'comprehension':'A','application':'B','completion':'B','homework':'AD','resolution':'B'}

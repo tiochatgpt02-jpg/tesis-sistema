@@ -135,3 +135,10 @@ El responsable técnico comprueba conformidad del código; el docente valida con
 ## Referencias del marco
 
 The Open Group, The TOGAF Standard Version 9.2, 2018, referencia de versión solicitada: https://www.opengroup.org/togaf-standard-version-92-overview (la página devolvió 403 en la consulta automatizada). Como explicación primaria accesible del método, dominios y gobierno se consultó [How the ArchiMate Language and the TOGAF Standard Complement Each Other](https://help.opengroup.org/hc/en-us/articles/32115987894930-How-the-ArchiMate-Language-and-the-TOGAF-Standard-Complement-Each-Other). La adaptación concreta, los límites y el mapeo al código son decisiones de este proyecto, no afirmaciones de certificación de The Open Group.
+
+
+## Actualización del 16 de noviembre de 2026
+
+El calendario referencial adopta los cuatro bloques lectivos MINEDU 2026, con primer inicio ajustado al 20 de marzo: 20/03–15/05, 25/05–24/07, 10/08–09/10 y 19/10–18/12. El usuario autoriza su uso provisional; no constituye confirmación del colegio. La migración conserva cualquier fecha que el docente ya haya editado.
+
+La referencia ML revisada usa un solo curso oficial UCI, procedencia con huellas y fechas de adaptación expresamente artificiales. Se elige el algoritmo con validación interna y se evalúa después en una partición separada. La ficha no inventa métricas ausentes ni presenta esa partición como validación histórica. Consultar [metodología](ml_methodology.md). La extracción de variables se comparte entre entrenamiento e inferencia y rechaza cortes y notas inválidos.

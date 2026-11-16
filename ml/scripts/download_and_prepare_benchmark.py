@@ -1,144 +1,81 @@
-#!/usr/bin/env python3
-"""Descarga y convierte el dataset benchmark internacional abierto de la UCI (Student Performance)
-
-Fuente: UCI Machine Learning Repository / Cortez and Silva, 2008
-Cursos: Matemática (student-mat) y Lengua Portuguesa / Humanidades (student-por)
-Escala: Vigesimal original (0 a 20).
-"""
-
+"""Prepare a single-course UCI reference, without invented historical cohorts."""
 from __future__ import annotations
-
+import argparse
 import csv
-import io
+from hashlib import sha256
+from io import BytesIO, StringIO
+import json
+import math
 from pathlib import Path
-import shutil
-import sys
-import urllib.request
-from typing import Any, Dict, List, Tuple
+import requests
+from zipfile import ZipFile
 
-ROOT = Path(r"c:\Users\familia\Downloads\sistema IA\sistema IA")
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-URL_MAT = "https://raw.githubusercontent.com/guipsamora/pandas_exercises/master/04_Apply/Students_Alcohol_Consumption/student-mat.csv"
-URL_POR = "https://raw.githubusercontent.com/KunjalJethwani/StudentPerformance/master/student-por.csv"
+ROOT=Path(__file__).resolve().parents[2]
+SOURCE_URL='https://archive.ics.uci.edu/static/public/320/student+performance.zip'
+DATASET_URL='https://archive.ics.uci.edu/dataset/320/student+performance'
 
 
-def fetch_csv_data(url: str) -> List[Dict[str, str]]:
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as resp:
-        content = resp.read().decode('utf-8')
-    
-    # Detect delimiter (comma or semicolon)
-    first_line = content.split('\n', 1)[0]
-    delimiter = ';' if ';' in first_line else ','
-    reader = csv.DictReader(io.StringIO(content), delimiter=delimiter)
-    return list(reader)
+def course_csv(archive):
+    with ZipFile(BytesIO(archive)) as outer:
+        if 'student-por.csv' in outer.namelist():
+            return outer.read('student-por.csv')
+        if 'student.zip' in outer.namelist():
+            with ZipFile(BytesIO(outer.read('student.zip'))) as inner:
+                return inner.read('student-por.csv')
+    raise ValueError('El archivo oficial no contiene student-por.csv.')
 
 
-def prepare_benchmark_csv(output_csv: Path) -> int:
-    print("--- Descargando Benchmark UCI Student Performance ---")
-    raw_mat = fetch_csv_data(URL_MAT)
-    print(f"Matemática (student-mat): {len(raw_mat)} estudiantes descargados.")
-    raw_por = fetch_csv_data(URL_POR)
-    print(f"Humanidades (student-por): {len(raw_por)} estudiantes descargados.")
-
-    output_csv.parent.mkdir(parents=True, exist_ok=True)
-
-    header = [
-        'student_code',
-        'academic_year',
-        'period',
-        'subject',
-        'event_date',
-        'activity_type',
-        'score',
-        'attendance_percentage',
-        'final_score',
-        'final_status',
-        'is_at_risk',
-    ]
-
-    records: List[List[Any]] = []
-    student_counter = 1
-
-    datasets = [
-        (raw_mat, 'Matemática', 'MAT'),
-        (raw_por, 'Comunicación', 'POR'),
-    ]
-
-    for data, subject_name, prefix in datasets:
-        total_in_subset = len(data)
-        for idx, row in enumerate(data):
-            code = f"ALU-BM-{prefix}-{idx+1:04d}"
-            
-            # Asignar 60% de estudiantes al año 2023 y 40% al año 2024
-            # Esto permite una división temporal natural (entrenar en 2023, evaluar en 2024)
-            year = 2023 if idx < int(total_in_subset * 0.6) else 2024
-            period = 'B1'
-
-            g1 = float(row.get('G1', 0))
-            g2 = float(row.get('G2', 0))
-            g3 = float(row.get('G3', 0))
-            absences = float(row.get('absences', 0))
-            attendance_pct = max(0.0, min(100.0, round(100.0 - (absences * 2.5), 1)))
-
-            at_risk = 1 if g3 < 11.0 else 0
-            final_status = 'desaprobado' if at_risk == 1 else 'aprobado'
-
-            # Evento formativo 1: Evaluación intermedia del primer tercio (marzo)
-            records.append([
-                code,
-                year,
-                period,
-                subject_name,
-                f"{year}-03-20 10:00:00",
-                'actividades',
-                g1,
-                '',   # Asistencia no obligatoria en evento
-                '',
-                '',
-                '',
-            ])
-
-            # Evento formativo 2: Evaluación intermedia del segundo tercio (abril) + Outcome final consolidado
-            records.append([
-                code,
-                year,
-                period,
-                subject_name,
-                f"{year}-04-25 10:00:00",
-                'evaluaciones',
-                g2,
-                attendance_pct,
-                g3,
-                final_status,
-                at_risk,
-            ])
-            student_counter += 1
-
-    with output_csv.open('w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
+def prepare_benchmark_csv(output_csv: Path, archive_path: Path | None = None) -> int:
+    if archive_path is None:
+        response=requests.get(SOURCE_URL,headers={'User-Agent':'AulaComputacionTesis/1.0'},timeout=60)
+        response.raise_for_status()
+        archive=response.content
+        if len(archive)>5_000_000:
+            raise ValueError('El archivo de referencia excede el limite esperado.')
+    else:
+        archive=Path(archive_path).read_bytes()
+    raw=course_csv(archive)
+    rows=list(csv.DictReader(StringIO(raw.decode('utf-8-sig')),delimiter=';'))
+    if not rows or not {'G1','G2','G3'}.issubset(rows[0]):
+        raise ValueError('Faltan las tres calificaciones del curso de referencia.')
+    records=[]
+    for index,row in enumerate(rows,1):
+        grades=[float(row[key]) for key in ('G1','G2','G3')]
+        if any(not math.isfinite(value) or not 0<=value<=20 for value in grades):
+            raise ValueError('Calificacion invalida en el archivo de referencia.')
+        g1,g2,g3=grades
+        identity=f'UCI-POR-{index:04d}'
+        # Artificial timestamps express G1 before G2, not actual collection dates.
+        records.append([identity,2000,'UCI','Portuguese','2000-01-01','actividades',g1,'','',''])
+        records.append([identity,2000,'UCI','Portuguese','2000-02-01','evaluaciones',g2,g3,
+                        'desaprobado' if g3<11 else 'aprobado',int(g3<11)])
+    output_csv=Path(output_csv)
+    output_csv.parent.mkdir(parents=True,exist_ok=True)
+    with output_csv.open('w',newline='',encoding='utf-8') as stream:
+        writer=csv.writer(stream)
+        writer.writerow(['student_code','academic_year','period','subject','event_date','activity_type',
+                         'score','final_score','final_status','is_at_risk'])
         writer.writerows(records)
-
-    total_students = len(raw_mat) + len(raw_por)
-    print(f"\nArchivo institucional generado con éxito en: {output_csv}")
-    print(f"Total de estudiantes convertidos: {total_students}")
-    print(f"Total de filas generadas (eventos + outcomes): {len(records)}")
-
-    # Copiar también al repo de ml/scripts
-    script_dest = ROOT / "ml" / "scripts" / "download_and_prepare_benchmark.py"
-    shutil.copy(__file__, script_dest)
-    print(f"Script copiado a: {script_dest}")
-
+    provenance={'name':'UCI Student Performance','source_url':SOURCE_URL,'dataset_url':DATASET_URL,
+        'course':'student-por.csv','observations':len(rows),'events':len(records),
+        'archive_sha256':sha256(archive).hexdigest(),'course_sha256':sha256(raw).hexdigest(),
+        'events_sha256':sha256(output_csv.read_bytes()).hexdigest(),
+        'synthetic_event_dates':True,'chronological_cohorts':False,
+        'purpose':'Technical reference only, not institutional validation',
+        'label_rule':'G3 < 11, project convention, not an official conversion of AD/A/B/C',
+        'license':'CC BY 4.0; attribute UCI Student Performance and Paulo Cortez'}
+    output_csv.with_name('dataset_metadata.json').write_text(json.dumps(provenance,indent=2),encoding='utf-8')
+    print(json.dumps({'course':provenance['course'],'observations':len(rows),'events':len(records),
+                      'synthetic_event_dates':True,'cohorts':'not historical'}))
     return len(records)
 
 
 def main():
-    dest = ROOT / "ml" / "datasets" / "raw" / "uci_student_performance_institutional.csv"
-    prepare_benchmark_csv(dest)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,default=ROOT/'ml/datasets/benchmark/raw/uci_student_performance_events.csv')
+    parser.add_argument('--archive',type=Path)
+    options=parser.parse_args()
+    prepare_benchmark_csv(options.output,options.archive)
 
-
-if __name__ == '__main__':
+if __name__=='__main__':
     main()

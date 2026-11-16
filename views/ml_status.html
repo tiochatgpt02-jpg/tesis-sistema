@@ -65,16 +65,16 @@
                 <div class="col-md-6 col-lg-3">
                     <div class="status-grid-item">
                         <div class="status-label"><i class="bi bi-diagram-3-fill text-primary me-1"></i> Modelo Activo</div>
-                        <div class="status-value">{{ winner_name or 'Random Forest' }}</div>
-                        <small class="text-muted d-block mt-1">Ensemble Classifier</small>
+                        <div class="status-value">{{ winner_name }}</div>
+                        <small class="text-muted d-block mt-1">Clasificador supervisado</small>
                     </div>
                 </div>
 
                 <div class="col-md-6 col-lg-3">
                     <div class="status-grid-item">
                         <div class="status-label"><i class="bi bi-gear-wide-connected text-primary me-1"></i> Algoritmo</div>
-                        <div class="status-value">Random Forest</div>
-                        <small class="text-muted d-block mt-1">100 estimadores (Gini)</small>
+                        <div class="status-value">{{ status.selected_algorithm or winner_name }}</div>
+                        <small class="text-muted d-block mt-1">Algoritmo del artefacto registrado</small>
                     </div>
                 </div>
 
@@ -88,7 +88,7 @@
                             Benchmark UCI
                             {% endif %}
                         </div>
-                        <small class="text-muted d-block mt-1">Cortez &amp; Silva (2008)</small>
+                        <small class="text-muted d-block mt-1">{{ 'UCI Student Performance' if source == 'benchmark' else 'Historial institucional' }}</small>
                     </div>
                 </div>
 
@@ -117,39 +117,42 @@
                 <div>
                     <h6 class="fw-bold mb-1 text-dark">Advertencia Metodológica para Tesis y Evaluadores</h6>
                     <p class="mb-0 text-secondary small">
-                        <strong>No entrenado aún con datos institucionales:</strong> El modelo actual opera sobre el dataset público internacional de benchmark para demostrar la viabilidad algorítmica y técnica del pipeline. Para su despliegue formal en el colegio, la arquitectura admite la sustitución por datos históricos propios mediante <code>python ml/run_pipeline.py --source institutional</code> sin tocar el código fuente.
+                        {% if source == 'benchmark' %}<strong>Referencia técnica sin validación del colegio:</strong> Las métricas corresponden a datos públicos de secundaria. No miden la precisión con estos alumnos de primaria. Las fechas del adaptador son artificiales y no acreditan cohortes históricas.
+                        {% elif not is_available %}<strong>Modelo institucional no disponible:</strong> Faltan datos adecuados y una evaluación independiente antes de utilizar una predicción escolar.
+                        {% else %}<strong>Supervisión docente:</strong> Verifica la procedencia y el informe de evaluación del modelo antes de interpretar sus resultados como evidencia del colegio.{% endif %}
                     </p>
                 </div>
             </div>
 
             <!-- Métricas de Rendimiento -->
-            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Métricas de Validación Temporal (Out-of-Time)</h5>
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Métricas de evaluación final</h5>
+            <p class="small text-muted">{% if status.metric_scope == 'independent_holdout_of_selected_model' %}El modelo se elige con validación interna del entrenamiento. La evaluación final utiliza datos separados de esa selección.{% else %}No se ha acreditado una evaluación independiente de la selección para este artefacto.{% endif %} La probabilidad estimada no es una certeza individual ni está calibrada para el colegio.</p>
             <div class="row g-2 mb-4">
                 <div class="col-6 col-md-3">
                     <div class="p-3 bg-light border rounded text-center">
                         <small class="text-muted d-block fw-semibold">Sensibilidad (Recall)</small>
-                        <span class="fs-4 fw-bold text-danger">{{ "%.2f"|format((winner_metrics.recall * 100) if winner_metrics else 90.48) }}%</span>
+                        <span class="fs-4 fw-bold text-danger">{{ ("%.2f"|format(winner_metrics.recall * 100) ~ '%') if winner_metrics.recall is not none else 'No disponible' }}</span>
                         <small class="d-block text-muted" style="font-size: 0.72rem;">Detección de riesgo</small>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="p-3 bg-light border rounded text-center">
                         <small class="text-muted d-block fw-semibold">Exactitud (Accuracy)</small>
-                        <span class="fs-4 fw-bold text-primary">{{ "%.2f"|format((winner_metrics.accuracy * 100) if winner_metrics else 91.15) }}%</span>
+                        <span class="fs-4 fw-bold text-primary">{{ ("%.2f"|format(winner_metrics.accuracy * 100) ~ '%') if winner_metrics.accuracy is not none else 'No disponible' }}</span>
                         <small class="d-block text-muted" style="font-size: 0.72rem;">Clasificación global</small>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="p-3 bg-light border rounded text-center">
                         <small class="text-muted d-block fw-semibold">F1-Score (Riesgo)</small>
-                        <span class="fs-4 fw-bold text-success">{{ "%.4f"|format(winner_metrics.f1 if winner_metrics else 0.9024) }}</span>
+                        <span class="fs-4 fw-bold text-success">{{ "%.4f"|format(winner_metrics.f1) if winner_metrics.f1 is not none else 'No disponible' }}</span>
                         <small class="d-block text-muted" style="font-size: 0.72rem;">Equilibrio armónico</small>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="p-3 bg-light border rounded text-center">
                         <small class="text-muted d-block fw-semibold">ROC-AUC</small>
-                        <span class="fs-4 fw-bold text-info">{{ "%.4f"|format(winner_metrics.roc_auc if winner_metrics else 0.9605) }}</span>
+                        <span class="fs-4 fw-bold text-info">{{ "%.4f"|format(winner_metrics.roc_auc) if winner_metrics.roc_auc is not none else 'No disponible' }}</span>
                         <small class="d-block text-muted" style="font-size: 0.72rem;">Área bajo la curva</small>
                     </div>
                 </div>
@@ -157,7 +160,7 @@
 
             <!-- Tabla de Comparación Multimodelo -->
             {% if models %}
-            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-table me-1"></i> Comparación Multialgorítmica Registrada</h6>
+            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-table me-1"></i>{{ 'Comparación en validación interna del entrenamiento' if comparison_scope == 'inner_training_validation' else 'Comparación histórica sin prueba independiente acreditada' }}</h6>
             <div class="table-responsive mb-4">
                 <table class="table table-sm table-bordered align-middle">
                     <thead class="table-light">
@@ -198,7 +201,7 @@
                     <i class="bi bi-arrow-left me-1"></i> Volver al Panel Docente
                 </a>
                 <span class="text-muted small">
-                    <i class="bi bi-shield-lock-fill text-success me-1"></i> Ley N.º 29733 (Privacidad de Datos) · Escala Vigesimal CNEB (0-20)
+                    Referencia técnica y supervisión docente. Las notas del sistema usan escala de 0 a 20.
                 </span>
             </div>
         </div>

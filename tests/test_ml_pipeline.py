@@ -211,8 +211,17 @@ class TestRunPipelineSingleCommand(unittest.TestCase):
             summary = run_ml_pipeline(source='benchmark', split_strategy='temporal', cutoff_date='2024-04-30', output_root=Path(directory))
         self.assertEqual(summary['source'], 'benchmark')
         self.assertIn(summary['selected_algorithm'], {'RandomForest', 'GradientBoosting', 'LogisticRegression', 'DecisionTree'})
-        self.assertGreater(summary['test_metrics']['accuracy'], 0.85)
-        self.assertGreater(summary['test_metrics']['positive_class_recall'], 0.85)
+        validation=summary['validation_info']
+        self.assertEqual(validation['strategy'],'group_split')
+        self.assertEqual(validation['requested_strategy'],'temporal')
+        self.assertEqual(validation['group_overlap'],0)
+        self.assertFalse(validation['test_used_for_selection'])
+        self.assertEqual(validation['selection_folds'],3)
+        matrix=summary['test_metrics']['confusion_matrix']
+        self.assertEqual(sum(map(sum,matrix)),validation['test_samples'])
+        self.assertEqual(validation['train_samples']+validation['test_samples'],649)
+        self.assertAlmostEqual(summary['test_metrics']['positive_class_recall'],
+                               matrix[1][1]/sum(matrix[1]),places=4)
 
 
 if __name__ == '__main__':

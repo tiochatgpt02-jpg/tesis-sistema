@@ -7,6 +7,7 @@
 {% for category,message in get_flashed_messages(with_categories=true) %}<p role="status" class="alert alert-{{ category }}">{{ message }}</p>{% endfor %}
 {% if error %}<p class="alert alert-danger" role="alert">{{ error }}</p>{% endif %}
 {% if not calendar.confirmed %}<p class="alert alert-warning">Calendario provisional. Contrasta las fechas con el colegio antes de confirmar resultados oficiales.</p>{% endif %}
+{% if calendar.reference_source %}<p class="small">Referencia: <a href="{{ calendar.reference_source }}">bloques lectivos MINEDU 2026</a>, adaptados al inicio del 20 de marzo indicado para este proyecto. No representa un promedio nacional ni la confirmación del colegio.</p>{% endif %}
 <form method="get" action="/teacher/academic-calendar" class="d-flex flex-wrap gap-2 align-items-end mb-4"><div><label for="selected-year" class="form-label">Año</label><input id="selected-year" class="form-control" type="number" min="2000" max="2100" name="year" value="{{ calendar.year }}" required></div><button type="submit" class="btn btn-outline-primary">Consultar año</button></form>
 <form method="post" action="/teacher/academic-calendar" class="card p-3 p-md-4" aria-labelledby="calendar-form-title">
 <h2 id="calendar-form-title" class="h5">Bimestres de {{ calendar.year }}</h2>

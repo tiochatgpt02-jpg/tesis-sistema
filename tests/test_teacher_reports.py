@@ -13,7 +13,7 @@ def test_build_prediction_payload_returns_model_not_available_when_untrained():
 
     registry = get_model_registry()
     with patch.object(registry, 'is_available', return_value=False):
-        payload = build_prediction_payload('Ana', 17, 'actividades')
+        payload = build_prediction_payload('Ana', 17, 'actividades',student_id=999)
         assert payload['success'] is False
         assert payload['code'] == 'MODEL_NOT_AVAILABLE'
         assert 'no ha sido entrenado' in payload['message'].lower()
@@ -21,12 +21,17 @@ def test_build_prediction_payload_returns_model_not_available_when_untrained():
 
 def test_build_prediction_payload_with_real_trained_model_on_disk():
     # Tests real prediction when trained model is available
-    payload = build_prediction_payload('Carlos', 16.5, 'actividades')
+    from services import db_service
+    db_service.record_student_result(1,score=12)
+    db_service.record_student_result(1,score=16)
+    payload = build_prediction_payload('Carlos', 16.5, 'actividades',student_id=1)
     assert payload['success'] is True
     assert payload['risk_level'] in {'Bajo', 'Medio', 'Alto'}
     assert payload['level'] in {'excelente', 'bueno', 'necesita apoyo'}
     assert payload['risk_probability'] is not None
-    assert 'recomend' in payload['recommendation'].lower()
+    assert payload['student_id']==1
+    assert payload['validation_scope']=='benchmark'
+    assert 'no constituyen una validación' in payload['notice']
 
 
 def test_build_prediction_payload_with_trained_model():
@@ -44,11 +49,12 @@ def test_build_prediction_payload_with_trained_model():
     try:
         registry._cached_model = dummy_model
         registry._cached_metadata = {'status': 'AVAILABLE', 'version': 'v1_test', 'features': registry.DEFAULT_FEATURE_NAMES}
-        payload = build_prediction_payload('Computación', 18, 'actividades')
+        payload = build_prediction_payload('Computación', 18, 'actividades',student_id=1)
         assert payload['success'] is True
         assert payload['risk_level'] in {'Bajo', 'Medio', 'Alto'}
         assert payload['level'] in {'excelente', 'bueno', 'necesita apoyo'}
-        assert 'recomend' in payload['recommendation'].lower()
+        assert payload['risk_probability']==0.15
+        assert payload['recommendation']=='Mantener el plan de trabajo actual y proponer desafíos complementarios.'
     finally:
         registry._cached_model = orig_model
         registry._cached_metadata = orig_meta

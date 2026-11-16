@@ -26,6 +26,18 @@ def test_calendar_is_provisional_until_teacher_confirms():
     assert period_date_range('2', 2026) == ('2026-05-18', '2026-07-17', 'Bimestre 2')
 
 
+def test_2026_reference_is_editable_and_never_confirmed_automatically():
+    result=calendar.get_calendar(2026)
+    assert result['confirmed'] is False
+    assert [(str(row['date_from']),str(row['date_to'])) for row in result['periods']] == [
+        ('2026-03-20','2026-05-15'),('2026-05-25','2026-07-24'),
+        ('2026-08-10','2026-10-09'),('2026-10-19','2026-12-18')]
+    assert result['reference_source'] == calendar.REFERENCE_SOURCE
+    edited=calendar.save_calendar(2026,PERIODS,False,1)
+    assert edited['reference_source'] is None and edited['confirmed'] is False
+    assert period_date_range(2,2026)[:2] == ('2026-05-18','2026-07-17')
+
+
 def test_calendar_filters_report_and_current_term_from_same_dates(monkeypatch):
     calendar.save_calendar(2026, PERIODS, True, 1)
     monkeypatch.setattr(calendar, 'school_today', lambda: date(2026, 10, 7))
