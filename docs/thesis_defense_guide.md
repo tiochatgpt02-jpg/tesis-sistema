@@ -38,4 +38,10 @@ Hay contraseñas con hash, control por roles, consultas del historial propio y s
 
 Demuestran los comportamientos específicos verificados en código, base y navegador. No demuestran por sí solas aprendizaje, aceptación de alumnos reales, cobertura completa o cumplimiento institucional. El padrón de 51 cuentas, las notas de quince alumnos y las mediciones pretest/postest son conjuntos diferentes.
 
+## Cómo se distinguen las escalas y las versiones
+
+La lista de cotejo de la investigación contiene diez ítems valorados de 1 a 5, con un total de 10 a 50 puntos. La libreta académica del sistema utiliza notas de 0 a 20. Son mediciones distintas: una calificación guardada en PostgreSQL no sustituye una ficha de observación pretest o postest. El registro literal AD/A/B/C también se conserva por separado, sin convertirlo automáticamente a ninguna de esas escalas.
+
+La comparación pretest/postest de un solo grupo describe cambios observados; no demuestra por sí sola que el sistema sea su causa exclusiva. La validación del modelo predictivo es otro análisis y exige resultados posteriores independientes. El anexo técnico describe la versión revisada del producto; para atribuir sus funciones a la intervención original deben contrastarse las fechas y la versión que utilizaron los participantes.
+
 Para exponer, seguir la [guía del jurado](guia_demostracion_jurado.md) y explicar los pendientes en [protocolo de piloto](protocolo-piloto.md).
