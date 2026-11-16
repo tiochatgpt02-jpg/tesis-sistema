@@ -225,16 +225,23 @@ def build_processed_matrix(
 
     for r in records:
         code = r['student_code']
+        observation = (r.get('academic_year'), r.get('period'), r.get('subject'))
+        if code in student_meta and student_meta[code]['observation'] != observation:
+            raise ValueError('No se pueden mezclar periodos o cursos de un mismo alumno. '
+                             'Prepare una observacion con su corte y resultado posterior verificados.')
         if code not in student_meta:
             student_meta[code] = {
                 'academic_year': r.get('academic_year'),
                 'period': r.get('period'),
+                'observation': observation,
             }
 
         if r.get('score') is not None:
             student_notes[code].append(r)
 
         if r.get('final_score') is not None or r.get('final_status') or r.get('is_at_risk') is not None:
+            if code in student_outcomes and determine_target_risk(student_outcomes[code]) != determine_target_risk(r):
+                raise ValueError('Hay resultados finales contradictorios para una misma observacion.')
             student_outcomes[code] = {
                 'final_score': r.get('final_score'),
                 'final_status': r.get('final_status'),
@@ -250,6 +257,8 @@ def build_processed_matrix(
     for code, out in student_outcomes.items():
         notes = student_notes.get(code, [])
         feats = extract_features_from_records(notes, cutoff_date=cutoff_date)
+        if feats['total_attempts'] == 0:
+            raise ValueError('No hay notas observadas antes del corte para una observacion con resultado final.')
         target = determine_target_risk(out)
         meta = student_meta.get(code, {})
 

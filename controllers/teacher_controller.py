@@ -337,6 +337,10 @@ def api_student_risk(student_id: int):
     return jsonify({
         'student_id': student_id,
         'student_name': student_name,
+        'success': True,
+        'risk_probability': res.get('risk_probability'),
+        'validation_scope': res.get('validation_scope'),
+        'notice': res.get('notice'),
         'prediction': {
             'risk_level': res.get('prediction', {}).get('risk_level', 'UNKNOWN'),
             'probability': res.get('risk_probability'),

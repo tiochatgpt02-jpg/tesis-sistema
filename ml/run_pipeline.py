@@ -36,7 +36,7 @@ from ml.pipeline.predictor import AcademicRiskPredictor
 def run_ml_pipeline(
     source: str = 'benchmark',
     split_strategy: str = 'temporal',
-    cutoff_date: str = '2024-04-30',
+    cutoff_date: str | None = None,
     verbose: bool = True,
     output_root: Path | None = None,
 ) -> Dict[str, Any]:
@@ -45,6 +45,8 @@ def run_ml_pipeline(
     source_clean = source.strip().lower()
     if source_clean not in ('benchmark','institutional'):
         raise ValueError('Fuente de datos no valida.')
+    if source_clean == 'institutional' and not cutoff_date:
+        raise ValueError('El entrenamiento institucional requiere una fecha de corte explicita y verificada.')
 
     print("=" * 75)
     print("      SISTEMA IA - ORQUESTADOR DEL PIPELINE DE MACHINE LEARNING")
@@ -208,8 +210,8 @@ def main():
     parser.add_argument(
         "--cutoff-date",
         type=str,
-        default="2024-04-30",
-        help="Fecha de corte anti-leakage (YYYY-MM-DD).",
+        default=None,
+        help="Fecha de corte anti-leakage (YYYY-MM-DD); obligatoria para datos institucionales.",
     )
     args = parser.parse_args()
 

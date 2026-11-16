@@ -116,3 +116,60 @@ def test_model_status_uses_final_metrics_and_never_fabricates_missing_values(mon
         status['test_metrics']={}
         page=client.get('/teacher/ml-status').get_data(as_text=True)
         assert 'No disponible' in page and '91.15%' not in page and '90.48%' not in page
+
+
+@pytest.mark.parametrize('change,message',[
+    ({'period':'B2'},'mezclar'),
+    ({'academic_year':2027},'mezclar'),
+    ({'subject':'Otro'},'mezclar'),
+    ({'final_status':'desaprobado'},'contradictorios'),
+])
+def test_matrix_refuses_ambiguous_observations(tmp_path,change,message):
+    from ml.pipeline.feature_builder import build_processed_matrix
+    row={'student_code':'fixture','academic_year':2026,'period':'B1','subject':'Computacion',
+         'event_date':'2026-04-01','activity_type':'evaluaciones','score':14,'final_status':'aprobado'}
+    source=tmp_path/'events.csv'
+    with source.open('w',newline='') as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(row));writer.writeheader()
+        writer.writerows([row,{**row,**change}])
+    destination=tmp_path/'matrix.csv'
+    with pytest.raises(ValueError,match=message):
+        build_processed_matrix(source,destination,cutoff_date='2026-04-30')
+    assert not destination.exists()
+
+
+def test_matrix_refuses_outcome_without_observed_features(tmp_path):
+    from ml.pipeline.feature_builder import build_processed_matrix
+    source=tmp_path/'events.csv'
+    source.write_text('student_code,academic_year,period,subject,event_date,activity_type,score,final_status\n'
+                      'fixture,2026,B1,Computacion,2026-05-01,evaluaciones,14,aprobado\n')
+    with pytest.raises(ValueError,match='antes del corte'):
+        build_processed_matrix(source,tmp_path/'matrix.csv',cutoff_date='2026-04-30')
+
+
+def test_institutional_pipeline_requires_explicit_cutoff_before_reading_data(monkeypatch):
+    from ml import run_pipeline
+    def unexpected_read(*args,**kwargs):raise AssertionError('No debe leer datos sin corte')
+    monkeypatch.setattr(run_pipeline,'load_raw_csv',unexpected_read)
+    with pytest.raises(ValueError,match='corte explicita'):
+        run_pipeline.run_ml_pipeline(source='institutional')
+
+
+def test_student_risk_api_keeps_model_scope_and_notice(monkeypatch):
+    from types import SimpleNamespace
+    from app import app
+    from controllers import teacher_controller
+    payload={'success':True,'risk_probability':0.42,'risk_level':'Medio',
+             'validation_scope':'benchmark','notice':'Referencia; no es validacion institucional.',
+             'model':{'name':'Fixture'},'prediction':{'risk_level':'MEDIUM'}}
+    monkeypatch.setattr(teacher_controller,'get_risk_prediction_service',
+                        lambda:SimpleNamespace(predict_for_student=lambda **kwargs:payload))
+    monkeypatch.setattr(teacher_controller,'fetch_students',lambda:[])
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session.update(user='teacher',user_role='teacher',is_authenticated=True)
+        response=client.get('/teacher/api/students/123/risk')
+    body=response.get_json()
+    assert response.status_code==200 and body['success'] is True
+    assert body['risk_probability']==body['prediction']['probability']==0.42
+    assert body['validation_scope']=='benchmark' and body['notice']==payload['notice']

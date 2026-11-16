@@ -40,6 +40,8 @@ Una fecha de corte inválida se rechaza. Con corte explícito, un evento sin fec
 
 La falta de historial devuelve estado explícito y probabilidad nula. Los fallos de datos y de modelo no se sustituyen por porcentajes fijos. Los identificadores no entran en la matriz predictiva; esto por sí solo no constituye una auditoría de privacidad ni acredita anonimización irreversible.
 
+El constructor actual admite una observación por alumno. Rechaza mezclar años, periodos o cursos de una misma persona, objetivos contradictorios y observaciones sin notas previas al corte. Una futura preparación longitudinal requiere definir observaciones, cortes y resultados posteriores de forma explícita; este constructor no los infiere. La ejecución institucional exige `--cutoff-date`, sin reutilizar una fecha histórica predeterminada. La API por alumno conserva el alcance y el aviso del modelo de referencia.
+
 ## Reproducción
 
 ```powershell
