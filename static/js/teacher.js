@@ -1621,12 +1621,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const payload = data.payload || data;
 
-            if (!payload.success || payload.code === 'MODEL_NOT_AVAILABLE' || payload.status === 'MODEL_NOT_AVAILABLE') {
+            if (!payload.success || payload.risk_probability === null || payload.risk_probability === undefined) {
                 aiBox.querySelector('.prediction-text').textContent =
-                    'Modelo predictivo aún no disponible — Requiere datos de entrenamiento del colegio.';
+                    payload.summary || payload.message || 'Predicción no disponible. No se ha asignado un nivel de riesgo.';
                 if (recommendation) {
                     recommendation.textContent =
-                        payload.message || 'El sistema está preparado para entrenar un modelo supervisado real en cuanto se cargue el dataset institucional.';
+                        payload.recommendation || payload.message || 'Inténtalo nuevamente cuando el historial y el modelo estén disponibles.';
                 }
                 if (levelBadge) {
                     levelBadge.textContent = 'No disponible';
@@ -1634,14 +1634,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     levelBadge.style.color = '#475569';
                 }
                 if (riskBadge) {
-                    riskBadge.textContent = 'Sin modelo';
+                    riskBadge.textContent = payload.risk_level || 'No disponible';
                     riskBadge.style.color = '#475569';
                 }
+                const probability = document.getElementById('prediction-prob');
+                if (probability) probability.textContent = 'No disponible';
                 return;
             }
 
             const summary = payload.summary || payload.recommendation || `Predicción supervisada para ${resolvedStudentName}.`;
-            aiBox.querySelector('.prediction-text').textContent = summary;
+            aiBox.querySelector('.prediction-text').textContent = [summary, payload.notice].filter(Boolean).join(' ');
             if (recommendation) recommendation.textContent = payload.recommendation || 'Predicción generada por modelo supervisado.';
 
             const studentNameEl = document.getElementById('prediction-student-name');
@@ -2502,7 +2504,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         topic_title: topicTitle,
                         grade: grade,
                         title: title,
-                        question_count: 15
+                        question_count: Number(document.getElementById('assessment-gen-count')?.value || 6),
+                        kind: document.getElementById('assessment-gen-kind')?.value || 'exam'
                     })
                 });
                 const data = await resp.json();
@@ -2704,160 +2707,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderAiGameReadOnlyPreview(gameType, content) {
-        let preview = '';
-        if (gameType === 'drag_drop') {
-            preview = `<h6 class="fw-bold">Elementos y sus grupos correctos</h6>
-                <ul>${(content.items || []).map(item =>
-                    `<li><strong>${escapeText(item.item)}</strong>: ${escapeText(item.category)}</li>`,
-                ).join('')}</ul>`;
-        } else if (gameType === 'memory') {
-            preview = `<h6 class="fw-bold">Parejas de tarjetas</h6>
-                <ul>${(content.pairs || []).map(pair =>
-                    `<li><strong>${escapeText(pair.left)}</strong>: ${escapeText(pair.right)}</li>`,
-                ).join('')}</ul>`;
-        } else if (gameType === 'ordering') {
-            preview = `<h6 class="fw-bold">Orden correcto</h6>
-                <ol>${(content.items || []).map(item => `<li>${escapeText(item)}</li>`).join('')}</ol>`;
-        } else if (gameType === 'challenge') {
-            preview = (content.levels || []).map((level, index) => `
-                <section class="mb-3">
-                    <h6 class="fw-bold">Nivel ${index + 1}</h6>
-                    <p class="mb-1">${escapeText(level.question)}</p>
-                    <ul>${(level.options || []).map(option => `<li>${escapeText(option)}</li>`).join('')}</ul>
-                    <p class="mb-0"><strong>Respuesta correcta:</strong> ${escapeText(level.answer)}</p>
-                </section>
-            `).join('');
-        }
+    let currentAiGameEditor = null;
+    let currentGameReviewRequest = 0;
+    let gameReviewDirty = false;
 
-        return `<div id="ai-game-content-preview" class="small">
-            ${preview || '<p>Revisa el juego antes de aprobarlo.</p>'}
-            ${content.explanation ? `<p><strong>Explicación:</strong> ${escapeText(content.explanation)}</p>` : ''}
-            <p class="text-muted mb-0">Este contenido se muestra solo para revisión. Puedes ajustar el título, las instrucciones y la dificultad. Si necesitas otro contenido, usa Regenerar con IA y revisa la nueva versión.</p>
-        </div>`;
+    function setReviewStatus(status) {
+        const badge = document.getElementById('modal-ai-game-status-badge');
+        badge.dataset.status = status;
+        badge.textContent = { PUBLISHED: 'Publicado', APPROVED: 'Aprobado', PENDING_REVIEW: 'Pendiente de revisión' }[status] || status;
+        badge.className = `badge ${status === 'PUBLISHED' ? 'bg-success' : status === 'APPROVED' ? 'bg-info text-dark' : 'bg-warning text-dark'} fs-6 px-3 py-2 rounded-pill`;
     }
+
+    function reviewedContentIsSaved() {
+        if (!currentAiGameEditor) return false;
+        if (gameReviewDirty) {
+            showModalAiGameFeedback('Guarda los cambios antes de aprobar o publicar el juego.', 'warning');
+            return false;
+        }
+        return true;
+    }
+
+    aiGameReviewModalEl?.addEventListener('input', () => { if (currentAiGameEditor) gameReviewDirty = true; });
+    aiGameReviewModalEl?.addEventListener('change', () => { if (currentAiGameEditor) gameReviewDirty = true; });
 
     async function openAiGameReviewModal(gameId) {
         if (!aiGameReviewModal) return;
-        const modalIdInput = document.getElementById('modal-ai-game-id');
-        const modalTitleInput = document.getElementById('modal-ai-game-title');
-        const modalInstructionInput = document.getElementById('modal-ai-game-instruction');
-        const modalStatusBadge = document.getElementById('modal-ai-game-status-badge');
-        const modalTypeBadge = document.getElementById('modal-ai-game-type-badge');
-        const modalDifficulty = document.getElementById('modal-ai-game-difficulty');
-        const dynamicContentArea = document.getElementById('modal-ai-game-dynamic-content');
-
-        modalIdInput.value = gameId;
-        dynamicContentArea.innerHTML = '<p class="text-muted small mb-0"><span class="spinner-border spinner-border-sm me-1"></span> Cargando datos del juego...</p>';
+        const requestId = ++currentGameReviewRequest;
+        currentAiGameEditor = null;
+        gameReviewDirty = false;
+        const area = document.getElementById('modal-ai-game-dynamic-content');
+        const actions = ['save', 'approve', 'publish', 'regenerate', 'delete'].map(action => document.getElementById(`btn-modal-ai-game-${action}`)).filter(Boolean);
+        actions.forEach(button => { button.disabled = true; });
+        document.getElementById('modal-ai-game-id').value = gameId;
+        area.textContent = 'Cargando el contenido del juego...';
+        document.getElementById('modal-ai-game-feedback').style.display = 'none';
         aiGameReviewModal.show();
-
         try {
-            const resp = await fetch(`/teacher/api/ai-games/${gameId}`);
-            const data = await resp.json();
-            if (!resp.ok || !data.success) {
-                dynamicContentArea.innerHTML = `<div class="alert alert-danger py-2 small">${data.error || 'Error al obtener el juego.'}</div>`;
-                return;
-            }
-
+            const response = await fetch(`/teacher/api/ai-games/${gameId}`);
+            const data = await response.json();
+            if (requestId !== currentGameReviewRequest) return;
+            if (!response.ok || !data.success) throw new Error(data.error || 'No se pudo obtener el juego.');
             const game = data.game;
-            modalTitleInput.value = game.title || '';
-            modalInstructionInput.value = game.instruction || '';
-
-            const st = game.status || 'PENDING_REVIEW';
-            modalStatusBadge.textContent = st;
-            modalStatusBadge.className = `badge ${st === 'PUBLISHED' ? 'bg-success' : st === 'APPROVED' ? 'bg-info text-dark' : 'bg-warning text-dark'} fs-6 px-3 py-2 rounded-pill`;
-
-            modalTypeBadge.textContent = game.game_type;
-
-            const c = game.content_json || {};
-            if (modalDifficulty) modalDifficulty.value = (c._meta || {}).difficulty || 'easy';
-            let dynHtml = '';
-
-            if (game.game_type === 'multiple_choice') {
-                dynHtml = `
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Pregunta</label>
-                        <input type="text" class="form-control" id="edit-mc-question" value="${escapeText(c.question || '')}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Opciones de respuesta (una por línea o separadas por coma)</label>
-                        <textarea class="form-control" id="edit-mc-options" rows="3" required>${(c.options || []).join('\n')}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Respuesta Correcta</label>
-                        <input type="text" class="form-control text-success fw-bold" id="edit-mc-answer" value="${escapeText(c.answer || '')}" required>
-                    </div>
-                    <div>
-                        <label class="form-label small fw-bold">Explicación motivadora</label>
-                        <input type="text" class="form-control" id="edit-mc-explanation" value="${escapeText(c.explanation || '')}">
-                    </div>
-                `;
-            } else if (game.game_type === 'true_false') {
-                dynHtml = `
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Afirmación</label>
-                        <input type="text" class="form-control" id="edit-tf-statement" value="${escapeText(c.statement || '')}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Respuesta Correcta</label>
-                        <select class="form-select text-primary fw-bold" id="edit-tf-answer">
-                            <option value="true" ${c.correct_answer === true ? 'selected' : ''}>✅ Verdadero</option>
-                            <option value="false" ${c.correct_answer === false ? 'selected' : ''}>❌ Falso</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="form-label small fw-bold">Explicación</label>
-                        <input type="text" class="form-control" id="edit-tf-explanation" value="${escapeText(c.explanation || '')}">
-                    </div>
-                `;
-            } else if (game.game_type === 'fill_blank') {
-                dynHtml = `
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Oración con espacio a completar (usa '______')</label>
-                        <input type="text" class="form-control" id="edit-fb-sentence" value="${escapeText(c.sentence || '')}" required>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Palabra que completa (blank_word)</label>
-                            <input type="text" class="form-control text-success fw-bold" id="edit-fb-word" value="${escapeText(c.blank_word || (c.answers && c.answers[0]) || '')}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Alternativas separadas por coma</label>
-                            <input type="text" class="form-control" id="edit-fb-options" value="${escapeText((c.options || []).join(', '))}">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="form-label small fw-bold">Explicación</label>
-                        <input type="text" class="form-control" id="edit-fb-explanation" value="${escapeText(c.explanation || '')}">
-                    </div>
-                `;
-            } else if (game.game_type === 'matching') {
-                const pairs = c.pairs || [];
-                let pairsRows = '';
-                pairs.forEach((p, idx) => {
-                    pairsRows += `
-                        <div class="row g-2 mb-2 pair-row">
-                            <div class="col-md-5"><input type="text" class="form-control form-control-sm pair-left" value="${escapeText(p.left || '')}" placeholder="Concepto"></div>
-                            <div class="col-md-7"><input type="text" class="form-control form-control-sm pair-right" value="${escapeText(p.right || '')}" placeholder="Definición o significado"></div>
-                        </div>
-                    `;
-                });
-                dynHtml = `
-                    <label class="form-label small fw-bold mb-2">Parejas conceptuales para unir:</label>
-                    <div id="matching-pairs-container">${pairsRows}</div>
-                    <div class="mt-2">
-                        <label class="form-label small fw-bold">Explicación</label>
-                        <input type="text" class="form-control" id="edit-match-explanation" value="${escapeText(c.explanation || '')}">
-                    </div>
-                `;
-            } else {
-                dynHtml = renderAiGameReadOnlyPreview(game.game_type, c);
-            }
-
-            dynamicContentArea.innerHTML = dynHtml;
-
-        } catch (err) {
-            dynamicContentArea.innerHTML = `<div class="alert alert-danger py-2 small">${err.message}</div>`;
+            document.getElementById('modal-ai-game-title').value = game.title || '';
+            document.getElementById('modal-ai-game-instruction').value = game.instruction || '';
+            document.getElementById('modal-ai-game-difficulty').value = game.content_json?._meta?.difficulty || 'easy';
+            const type = document.getElementById('modal-ai-game-type-badge');
+            type.dataset.gameType = game.game_type;
+            type.textContent = window.TeacherGameEditor.labels[game.game_type] || game.game_type;
+            currentAiGameEditor = window.TeacherGameEditor.create(game.game_type, game.content_json || {});
+            area.replaceChildren(currentAiGameEditor.element);
+            setReviewStatus(game.status || 'PENDING_REVIEW');
+            gameReviewDirty = false;
+            actions.forEach(button => { button.disabled = false; });
+        } catch (error) {
+            if (requestId === currentGameReviewRequest) area.textContent = error.message;
         }
     }
 
@@ -2869,41 +2772,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const newTitle = document.getElementById('modal-ai-game-title').value.trim();
             const newInstruction = document.getElementById('modal-ai-game-instruction').value.trim();
             const newDifficulty = document.getElementById('modal-ai-game-difficulty').value;
-            const typeBadge = document.getElementById('modal-ai-game-type-badge').textContent.trim();
-
-            let newContent = null;
-            if (typeBadge === 'multiple_choice') {
-                const q = document.getElementById('edit-mc-question').value.trim();
-                const rawOpts = document.getElementById('edit-mc-options').value;
-                const opts = rawOpts.split(/\r?\n|,/).map(o => o.trim()).filter(Boolean);
-                const ans = document.getElementById('edit-mc-answer').value.trim();
-                const exp = document.getElementById('edit-mc-explanation').value.trim();
-                newContent = { question: q, options: opts, answer: ans, explanation: exp };
-            } else if (typeBadge === 'true_false') {
-                const stmt = document.getElementById('edit-tf-statement').value.trim();
-                const ans = document.getElementById('edit-tf-answer').value === 'true';
-                const exp = document.getElementById('edit-tf-explanation').value.trim();
-                newContent = { statement: stmt, correct_answer: ans, explanation: exp };
-            } else if (typeBadge === 'fill_blank') {
-                const s = document.getElementById('edit-fb-sentence').value.trim();
-                const w = document.getElementById('edit-fb-word').value.trim();
-                const opts = document.getElementById('edit-fb-options').value.split(',').map(o => o.trim()).filter(Boolean);
-                const exp = document.getElementById('edit-fb-explanation').value.trim();
-                newContent = { sentence: s, blank_word: w, answers: [w], options: opts, explanation: exp };
-            } else if (typeBadge === 'matching') {
-                const pairs = [];
-                document.querySelectorAll('.pair-row').forEach(row => {
-                    const l = row.querySelector('.pair-left')?.value.trim();
-                    const r = row.querySelector('.pair-right')?.value.trim();
-                    if (l && r) pairs.push({ left: l, right: r });
-                });
-                const exp = document.getElementById('edit-match-explanation').value.trim();
-                newContent = { pairs, explanation: exp };
+            if (!currentAiGameEditor || !currentAiGameEditor.reportValidity()) return;
+            if (!newTitle || !newInstruction) {
+                showModalAiGameFeedback('Completa el título y las instrucciones.', 'warning');
+                return;
             }
-
-            // Omit read-only content so the server preserves the stored game.
-            const updates = { title: newTitle, instruction: newInstruction, difficulty: newDifficulty };
-            if (newContent !== null) updates.content_json = newContent;
+            const updates = { title: newTitle, instruction: newInstruction, difficulty: newDifficulty,
+                              content_json: currentAiGameEditor.read() };
 
             try {
                 btnModalSave.disabled = true;
@@ -2915,7 +2790,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await resp.json();
                 btnModalSave.disabled = false;
                 if (resp.ok && data.success) {
-                    showModalAiGameFeedback('✅ Cambios guardados y validados correctamente.', 'success');
+                    gameReviewDirty = false;
+                    setReviewStatus(data.game.status);
+                    showModalAiGameFeedback('Cambios guardados. Revisa y aprueba esta versión antes de publicarla.', 'success');
                     loadTeacherAiGames();
                 } else {
                     showModalAiGameFeedback(data.error || 'Error al guardar cambios.', 'danger');
@@ -2995,14 +2872,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnModalApprove = document.getElementById('btn-modal-ai-game-approve');
     if (btnModalApprove) {
         btnModalApprove.addEventListener('click', async () => {
+            if (!reviewedContentIsSaved()) return;
             const gameId = document.getElementById('modal-ai-game-id').value;
             try {
                 const resp = await fetch(`/teacher/api/ai-games/${gameId}/approve`, { method: 'POST' });
                 const data = await resp.json();
                 if (resp.ok && data.success) {
                     showModalAiGameFeedback('✅ ¡Juego APROBADO por el profesor!', 'success');
-                    document.getElementById('modal-ai-game-status-badge').textContent = 'APPROVED';
-                    document.getElementById('modal-ai-game-status-badge').className = 'badge bg-info text-dark fs-6 px-3 py-2 rounded-pill';
+                    setReviewStatus('APPROVED');
                     loadTeacherAiGames();
                 } else {
                     showModalAiGameFeedback(data.error || 'No se pudo aprobar.', 'danger');
@@ -3017,14 +2894,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnModalPublish = document.getElementById('btn-modal-ai-game-publish');
     if (btnModalPublish) {
         btnModalPublish.addEventListener('click', async () => {
+            if (!reviewedContentIsSaved()) return;
             const gameId = document.getElementById('modal-ai-game-id').value;
             try {
                 const resp = await fetch(`/teacher/api/ai-games/${gameId}/publish`, { method: 'POST' });
                 const data = await resp.json();
                 if (resp.ok && data.success) {
                     showModalAiGameFeedback('🚀 ¡Juego PUBLICADO! Ahora es visible para los alumnos.', 'success');
-                    document.getElementById('modal-ai-game-status-badge').textContent = 'PUBLISHED';
-                    document.getElementById('modal-ai-game-status-badge').className = 'badge bg-success fs-6 px-3 py-2 rounded-pill';
+                    setReviewStatus('PUBLISHED');
                     loadTeacherAiGames();
                 } else {
                     showModalAiGameFeedback(data.error || 'No se pudo publicar.', 'danger');

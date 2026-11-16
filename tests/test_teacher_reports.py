@@ -35,6 +35,7 @@ def test_build_prediction_payload_with_trained_model():
 
     registry = get_model_registry()
     dummy_model = MagicMock()
+    dummy_model.classes_ = [0, 1]
     dummy_model.predict.return_value = [0]
     dummy_model.predict_proba.return_value = [[0.85, 0.15]]
 
@@ -67,7 +68,9 @@ def test_build_report_summary_includes_grade_totals():
     assert '5' in summary['report_by_grade']
 
 
-def test_build_student_risk_analysis_uses_progress_level():
+def test_build_student_risk_analysis_does_not_invent_risk_from_progress():
     risk = build_student_risk_analysis({'first_name': 'Ana', 'last_name': 'Martínez', 'progress': 40})
-    assert risk['risk_level'] == 'alto'
-    assert 'reforzar' in risk['recommendation'].lower()
+    assert risk['risk_level'] == 'no disponible'
+    assert risk['risk_probability'] is None
+    assert risk['method'] == 'unavailable'
+    assert risk['ml_status'] == 'STUDENT_REQUIRED'

@@ -4,6 +4,7 @@ import pytest
 from config import Config
 from services import db_service, mock_data
 from services import learning_attempt_service, grading_policy_service, practice_service
+from services import academic_calendar_service, academic_closure_service, literal_history_service
 
 _baseline = {name: deepcopy(value) for name,value in vars(mock_data).items() if name.startswith('MOCK_')}
 
@@ -21,3 +22,8 @@ def isolated_academic_data(monkeypatch):
     learning_attempt_service._permissions.clear()
     practice_service._prepared.clear()
     monkeypatch.setattr(grading_policy_service,'_policy',None)
+    monkeypatch.setattr(academic_calendar_service, '_calendars', {})
+    monkeypatch.setattr(academic_calendar_service, '_bounds', {})
+    monkeypatch.setattr(academic_closure_service, '_closures', {})
+    monkeypatch.setattr(academic_closure_service, '_events', [])
+    monkeypatch.setattr(literal_history_service, '_records', [])

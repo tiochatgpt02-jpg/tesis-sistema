@@ -70,7 +70,8 @@ def login():
             session['user_role'] = user.get('role')
             session['user_grade'] = user.get('grade')
             session['user_section'] = account_section
-            session['student_id'] = ensure_student_record_for_user(user, section=session['user_section']) if user.get('role') == 'student' else None
+            session['student_id'] = (int(student_record['id']) if student_record else
+                                     ensure_student_record_for_user(user, section=session['user_section'])) if user.get('role') == 'student' else None
             session['student_name'] = f"{user.get('first_name', '')} {user.get('last_name', username)}".strip()
             session['teacher_name'] = f"{user.get('first_name', 'Prof.')} {user.get('last_name', '')}".strip()
             session['is_authenticated'] = True

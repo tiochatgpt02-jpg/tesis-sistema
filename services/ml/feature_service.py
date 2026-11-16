@@ -148,24 +148,17 @@ class FeatureService:
         """Consulta la base de datos y extrae las features de un estudiante sin superar el cutoff temporal."""
         from services import db_service
 
-        try:
-            notes = db_service.fetch_student_results(student_id=student_id) or []
-        except Exception:
-            notes = []
-
-        try:
-            submissions = db_service.fetch_submissions(student_id=student_id) or []
-        except Exception:
-            submissions = []
-
-        reviews: List[Dict[str, Any]] = []
-        try:
+        # An unavailable database must not be reported as an empty student history.
+        notes = db_service.fetch_student_results(student_id=student_id) or []
+        submissions = db_service.fetch_submissions(student_id=student_id) or []
+        if db_service._use_mock():
+            reviews = [{'material_id': material_id, 'student_id': int(student_id)}
+                       for material_id in db_service._MOCK_MATERIAL_REVIEWS.get(int(student_id), set())]
+        else:
             reviews = db_service._query(
                 'SELECT material_id, student_id, reviewed_at FROM material_reviews WHERE student_id = %s',
                 (int(student_id),),
             ) or []
-        except Exception:
-            reviews = []
 
         return cls.extract_features_from_records(
             notes=notes,

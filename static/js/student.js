@@ -238,6 +238,8 @@ async function loadStudentRiskPrediction() {
         const data = await response.json();
 
         // Actualizar etiqueta y badge de riesgo
+        const modelNotice = document.getElementById('student-model-notice');
+        if (modelNotice) modelNotice.textContent = data.model_notice || '';
         const badge = document.getElementById('student-risk-badge');
         const levelLabel = document.getElementById('student-risk-level-label');
         if (badge && levelLabel) {
@@ -1142,204 +1144,8 @@ function playSessionGame(sessionNum) {
 }
 
 async function renderSessionEvaluation(topicId, targetId = 'evaluation-container-box') {
-    const container = document.getElementById(targetId);
-    if (!container) return;
-
     if (evaluationTimer) clearInterval(evaluationTimer);
-    container.innerHTML = '<div class="panel-card p-4"><p class="text-muted mb-0">Generando evaluación del tema...</p></div>';
-
-    let evalData;
-    try {
-        const response = await fetch(`/student/api/topics/${topicId}/evaluation`);
-        const contentType = response.headers.get('content-type') || '';
-        const data = contentType.includes('application/json')
-            ? await response.json()
-            : { error: `El servidor respondió ${response.status}. Reinicia Flask y vuelve a intentarlo.` };
-        if (!response.ok || !data.success) {
-            if (data.status === 'NOT_PUBLISHED' || data.status === 'NO_APPROVED_QUESTIONS') {
-                container.innerHTML = `
-                    <div class="panel-card shadow-sm border-0 rounded-4 p-4 text-center">
-                        <div class="mb-3 text-warning">
-                            <i class="bi bi-clock-history fs-1"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-2">Evaluación en Revisión Docente</h5>
-                        <p class="text-muted mb-3">${data.error || 'La evaluación generada por IA para este tema está siendo validada por tu profesor y aún no ha sido publicada.'}</p>
-                        <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-warning-subtle text-warning border border-warning-subtle small fw-semibold">
-                            <i class="bi bi-shield-check"></i> Supervisión docente obligatoria (Human-in-the-Loop)
-                        </div>
-                    </div>`;
-                return;
-            }
-            throw new Error(data.error || 'No se pudo cargar la evaluación');
-        }
-        evalData = data.evaluation;
-    } catch (error) {
-        container.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-        return;
-    }
-
-    const questions = evalData.questions || [];
-    let remainingSeconds = Math.max(0, (evalData.duration_minutes || 30) * 60 - Math.floor((Date.now() - Date.parse(evalData.started_at)) / 1000));
-    const formatTime = () => `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
-
-    container.innerHTML = `
-        <div class="panel-card shadow-sm border-0 rounded-4 p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
-                <div>
-                    <span class="badge bg-warning text-dark px-3 py-1 rounded-pill mb-1">${evalData.source === 'ollama' ? 'Preguntas del tema (Ollama)' : 'Preguntas de este tema'}</span>
-                    <h4 class="fw-bold text-dark mb-1"><i class="bi bi-clipboard-check text-primary me-2"></i> ${evalData.title}</h4>
-                    <p class="text-muted small mb-0">${questions.length} preguntas de acuerdo con este tema.</p>
-                </div>
-                <div class="text-end">
-                    <span id="evaluation-timer" class="badge bg-secondary text-white border px-3 py-2 fs-6">
-                        <i class="bi bi-clock me-1"></i> <span>20:00</span>
-                    </span>
-                </div>
-            </div>
-
-            <form id="session-eval-form" hidden>
-                ${questions.map((qObj, qIdx) => `
-                    <div class="mb-4 p-3 rounded-3 bg-light border">
-                        <h6 class="fw-bold text-dark mb-3">
-                            <span class="badge bg-primary me-2">${qIdx + 1}</span> ${qObj.question || qObj.q}
-                        </h6>
-                        <div class="d-grid gap-2">
-                            ${(qObj.options || []).map((opt, oIdx) => `
-                                <div class="form-check p-3 bg-white rounded-3 border">
-                                    <input class="form-check-input eval-radio-choice" type="radio" name="question_${qIdx}" id="q_${qIdx}_opt_${oIdx}" value="${escapeText(opt)}">
-                                    <label class="form-check-label fw-semibold text-dark w-100 cursor-pointer" for="q_${qIdx}_opt_${oIdx}">
-                                        ${escapeText(opt)}
-                                    </label>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('')}
-
-                <div id="eval-result-feedback" class="mb-3" hidden></div>
-
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" id="btn-submit-session-eval" class="btn btn-warning btn-lg rounded-3 fw-bold px-4 shadow-sm">
-                        <i class="bi bi-check-all me-1"></i> Finalizar y Calificar Evaluación
-                    </button>
-                </div>
-            </form>
-            <div id="evaluation-start-box" class="text-center py-4">
-                <p class="text-muted">El tiempo comienza únicamente al iniciar la evaluación.</p>
-                <button type="button" id="btn-start-session-eval" class="btn btn-primary btn-lg rounded-3 fw-bold px-5 shadow-sm">
-                    <i class="bi bi-play-fill me-1"></i> Empezar evaluación
-                </button>
-            </div>
-        </div>
-    `;
-
-    let startedAt = null;
-    let evaluationStarted = false;
-    let submitted = false;
-    const form = document.getElementById('session-eval-form');
-    const startBox = document.getElementById('evaluation-start-box');
-    const startButton = document.getElementById('btn-start-session-eval');
-    const timerBadge = document.getElementById('evaluation-timer');
-
-    const submitEvaluation = async () => {
-        if (submitted || !evaluationStarted) return;
-        submitted = true;
-        const feedbackBox = document.getElementById('eval-result-feedback');
-        const userAnswers = {};
-        const submitButton = document.getElementById('btn-submit-session-eval');
-
-        questions.forEach((qObj, qIdx) => {
-            const selected = form.querySelector(`input[name="question_${qIdx}"]:checked`);
-            const val = selected ? selected.value : '';
-            userAnswers[qIdx] = val;
-        });
-
-        feedbackBox.hidden = false;
-        submitButton.disabled = true;
-        form.querySelectorAll('input').forEach(input => { input.disabled = true; });
-        try {
-            const response = await fetch(`/student/api/topics/${topicId}/evaluation`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    answers: userAnswers,
-                    started_at: startedAt,
-                    attempt_id: evalData.attempt_id
-                })
-            });
-            const data = await response.json();
-            if (!response.ok || !data.success) throw new Error(data.error || 'No se pudo registrar la evaluación');
-            if (evaluationTimer) clearInterval(evaluationTimer);
-            const result = data.result;
-            const reinforceList = result.reinforce_topics || [];
-
-            feedbackBox.innerHTML = `
-                <div class="card p-4 rounded-4 shadow-sm border-0 bg-white">
-                    <div class="border-bottom pb-2 mb-3">
-                        <h4 class="fw-bold text-dark mb-0"><i class="bi bi-award-fill text-warning me-2"></i> Resultado:</h4>
-                    </div>
-                    <div class="row g-3 align-items-center mb-3">
-                        <div class="col-md-5 text-center text-md-start">
-                            <div class="fs-2 fw-bold text-primary mb-1">
-                                ${result.correct_answers}/${result.total_questions || 15} correctas
-                            </div>
-                            <div class="display-5 fw-bold text-success mb-2">
-                                ${result.percentage}%
-                            </div>
-                            <small class="text-muted d-block">Nota vigesimal: <strong>${result.score}/20</strong></small>
-                        </div>
-                        <div class="col-md-7">
-                            <div class="p-3 rounded-3 bg-light border">
-                                <h6 class="fw-bold text-dark mb-2">
-                                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Temas a reforzar:
-                                </h6>
-                                ${reinforceList.length > 0 ? `
-                                    <ul class="list-unstyled mb-0 small">
-                                        ${reinforceList.map(t => `<li class="text-dark fw-semibold mb-1"><span class="text-danger fw-bold me-1">-</span> ${t}</li>`).join('')}
-                                    </ul>
-                                ` : `
-                                    <p class="text-success small mb-0 fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> ¡Excelente dominio! No requieres refuerzo en este tema.</p>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 text-muted small pt-3 border-top">
-                        <span><i class="bi bi-stopwatch me-1"></i> Tiempo empleado: ${Math.floor((result.time_spent || 0) / 60)} min ${(result.time_spent || 0) % 60} seg</span>
-                        <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-database-check me-1"></i> Resultado guardado</span>
-                    </div>
-                </div>
-            `;
-
-            loadProgress();
-            loadRecommendations();
-        } catch (error) {
-            submitted = false;
-            if (remainingSeconds > 0) form.querySelectorAll('input').forEach(input => { input.disabled = false; });
-            submitButton.disabled = false;
-            feedbackBox.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-        }
-    };
-
-    startButton.addEventListener('click', () => {
-        evaluationStarted = true;
-        startedAt = evalData.started_at;
-        form.hidden = false;
-        startBox.hidden = true;
-        timerBadge.classList.remove('bg-secondary');
-        timerBadge.classList.add('bg-danger');
-        evaluationTimer = setInterval(() => {
-            remainingSeconds = Math.max(0, (evalData.duration_minutes || 30) * 60 - Math.floor((Date.now() - Date.parse(evalData.started_at)) / 1000));
-            const timer = document.querySelector('#evaluation-timer span');
-            if (timer) timer.textContent = formatTime();
-            if (remainingSeconds <= 0) {
-                form.querySelectorAll('input').forEach(input => { input.disabled = true; });
-                submitEvaluation();
-            }
-        }, 1000);
-    });
-    document.getElementById('btn-submit-session-eval').addEventListener('click', submitEvaluation);
-    startButton.click();
+    return window.StudentAssessmentRunner.load(topicId, targetId);
 }
 
 function roundScore(val) {
@@ -2840,3 +2646,4 @@ document.addEventListener('submit', async (e) => {
             `;
         }
     }
+

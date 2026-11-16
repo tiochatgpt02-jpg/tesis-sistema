@@ -74,21 +74,13 @@ def _auth_check():
 
 
 def _current_student_section():
-    student = fetch_student_by_id(session.get('student_id', 1)) or {}
-    return str(student.get('section') or session.get('user_section') or '').strip().upper()
+    from services.student_access_service import current_student_section
+    return current_student_section()
 
 
 def _published_topic_for_student(topic_id):
-    grade = session.get('user_grade') or 5
-    topic = fetch_topic_by_id(topic_id)
-    if not topic or int(topic.get('grade') or 0) != int(grade):
-        return None
-    topic_section = str(topic.get('section') or '').strip().upper()
-    if topic_section and topic_section != _current_student_section():
-        return None
-    if str(topic.get('status') or '').strip() != 'Publicado':
-        return None
-    return topic
+    from services.student_access_service import topic_for_student
+    return topic_for_student(topic_id)
 
 
 @student_blueprint.route('/')

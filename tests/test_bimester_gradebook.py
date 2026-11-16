@@ -24,12 +24,29 @@ def gradebook(monkeypatch):
     monkeypatch.setattr(policies, '_policy', deepcopy(POLICY))
     monkeypatch.setattr(db_service, 'fetch_students', lambda: deepcopy(STUDENTS))
     monkeypatch.setattr(db_service, 'fetch_student_by_id', lambda identity: next((deepcopy(row) for row in STUDENTS if row['id'] == int(identity)), None))
-    monkeypatch.setattr(db_service, 'fetch_student_results', lambda **kwargs: [])
+    results = []
+    monkeypatch.setattr(db_service, 'fetch_student_results', lambda **kwargs: [row for row in results
+                        if not kwargs.get('student_id') or row['student_id'] == kwargs['student_id']])
+    import controllers.teacher_reports_controller as reports_controller
+    monkeypatch.setattr(reports_controller, 'fetch_student_results', lambda **kwargs: list(results))
+    monkeypatch.setattr(reports_controller, 'fetch_students', lambda: deepcopy(STUDENTS))
     monkeypatch.setattr(grades, 'source_options', lambda grade: [
         {'value': 'practice:material:12', 'kind': 'practice', 'label': 'Práctica de prueba'},
         {'value': 'practice:material:13', 'kind': 'practice', 'label': 'Otra práctica'},
         {'value': 'exam:4', 'kind': 'exam', 'label': 'Examen de prueba'},
     ])
+    return results
+
+
+def save_complete_marks(results, year=2026, period=4):
+    grades.save_marks(1, year, period, {key: SCORES[key] for key in ('homework', 'participation', 'book')}, 1)
+    grades.save_sources(5, year, period, {'practice_1': 'practice:material:12',
+                        'practice_2': 'practice:material:13', 'exam': 'exam:4'}, 1)
+    from services.academic_calendar_service import period_range
+    start, _, _ = period_range(period, year)
+    for index, (key, scope) in enumerate((('practice_1', 'practice:material:12'), ('practice_2', 'practice:material:13'), ('exam', 'exam:4')), 1):
+        results.append({'student_id': 1, 'item_type': scope, 'score': SCORES[key], 'id': index,
+                        'activity_type': 'evaluaciones' if key == 'exam' else 'actividades', 'created_at': start})
 
 
 def notes(scores=SCORES):
@@ -62,30 +79,30 @@ def test_games_and_untagged_results_do_not_enter_component_average():
     assert policies.academic_average(notes() + extra, POLICY) == 17
 
 
-def test_manual_marks_preserve_year_period_student_and_validate_atomically():
-    grades.save_marks(1, 2026, 4, SCORES, 1)
-    grades.save_marks(1, 2026, 3, {'exam': 0}, 1)
-    grades.save_marks(2, 2026, 4, {'exam': 8}, 1)
-    assert grades.grade_rows([STUDENTS[0]], [], 2026, 4, POLICY)[0]['average'] == 17
+def test_manual_marks_preserve_year_period_student_and_validate_atomically(gradebook):
+    save_complete_marks(gradebook)
+    grades.save_marks(1, 2026, 3, {'homework': 0}, 1)
+    grades.save_marks(2, 2026, 4, {'homework': 8}, 1)
+    assert grades.grade_rows([STUDENTS[0]], gradebook, 2026, 4, POLICY)[0]['average'] == 17
     assert grades.grade_rows([STUDENTS[0]], [], 2027, 4, POLICY)[0]['average'] is None
     before = deepcopy(grades._manual)
     for value in ('NaN', 'Infinity', True, -1, 21, '1.001'):
         with pytest.raises(ValueError):
-            grades.save_marks(1, 2026, 4, {'homework': 19, 'exam': value}, 1)
+            grades.save_marks(1, 2026, 4, {'homework': 19, 'book': value}, 1)
         assert grades._manual == before
-    grades.save_marks(1, 2026, 4, {'exam': ''}, 1)
-    summary = grades.grade_rows([STUDENTS[0]], [], 2026, 4, POLICY)[0]
-    assert summary['average'] is None and summary['scores']['exam'] is None
-    assert grades.grade_rows([STUDENTS[1]], [], 2026, 4, POLICY)[0]['scores']['exam'] == 8
+    grades.save_marks(1, 2026, 4, {'book': ''}, 1)
+    summary = grades.grade_rows([STUDENTS[0]], gradebook, 2026, 4, POLICY)[0]
+    assert summary['average'] is None and summary['scores']['book'] is None
+    assert grades.grade_rows([STUDENTS[1]], [], 2026, 4, POLICY)[0]['scores']['homework'] == 8
 
 
-def test_linked_practice_uses_latest_in_term_and_cannot_be_overwritten_manually():
-    grades.save_marks(1, 2026, 4, SCORES, 1)
-    grades.save_sources(5, 2026, 4, {'practice_1': 'practice:material:12'}, 1)
+def test_linked_practice_uses_latest_in_term_and_cannot_be_overwritten_manually(gradebook):
+    save_complete_marks(gradebook)
     results = [dict(student_id=1, item_type='practice:material:12', score=4, created_at='2026-11-01', id=1),
                dict(student_id=1, item_type='practice:material:12', score=20, created_at='2026-11-02', id=2),
                dict(student_id=1, item_type='practice:material:12', score=0, created_at='2027-11-03', id=3),
                dict(student_id=2, item_type='practice:material:12', score=0, created_at='2026-11-03', id=4)]
+    results.extend(row for row in gradebook if row['item_type'] != 'practice:material:12')
     row = grades.grade_rows([STUDENTS[0]], results, 2026, 4, POLICY)[0]
     assert row['scores']['practice_1'] == 20
     assert row['average'] == 17.4
@@ -98,10 +115,10 @@ def test_linked_practice_uses_latest_in_term_and_cannot_be_overwritten_manually(
         grades.save_sources(5, 2026, 4, {'exam': 'practice:material:12'}, 1)
 
 
-def test_report_and_excel_have_same_six_component_average_and_period():
+def test_report_and_excel_have_same_six_component_average_and_period(gradebook):
     year = datetime.now().year
-    grades.save_marks(1, year, 4, SCORES, 1)
-    results = grades.with_component_results(STUDENTS, [], POLICY, 4, year)
+    save_complete_marks(gradebook, year)
+    results = grades.with_component_results(STUDENTS, gradebook, POLICY, 4, year)
     report = build_academic_report(STUDENTS, results, grade=5, period='4', policy=POLICY)
     assert report['rows'][0]['average'] == 17
     assert report['rows'][0]['components'] == SCORES
@@ -121,8 +138,10 @@ def teacher(client):
         session.update(is_authenticated=True, user_role='teacher', user='docente', user_id=1)
 
 
-def test_teacher_can_save_six_marks_and_student_cannot_modify_gradebook():
+def test_teacher_can_save_manual_marks_and_student_cannot_modify_gradebook(gradebook):
     year = datetime.now().year
+    save_complete_marks(gradebook, year)
+    grades.save_marks(1, year, 4, {'homework': 0, 'participation': 0, 'book': 0}, 1)
     with app.test_client() as client:
         assert client.get('/teacher/bimester-grades').status_code in (302, 401, 403)
         teacher(client)
@@ -130,12 +149,14 @@ def test_teacher_can_save_six_marks_and_student_cannot_modify_gradebook():
         assert response.status_code == 200
         with client.session_transaction() as session:
             token = session['gradebook_csrf']
-        form = {'action': 'marks', 'grade': 5, 'year': year, 'period': 4, 'student_id': 1, **SCORES}
+        form = {'action': 'marks', 'grade': 5, 'year': year, 'period': 4, 'student_id': 1,
+                **{key: SCORES[key] for key in ('homework', 'participation', 'book')}}
         assert client.post('/teacher/bimester-grades', data=form).status_code == 403
         form['csrf_token'] = token
         assert client.post('/teacher/bimester-grades', data=form).status_code == 303
         report = client.get('/teacher/api/reports/gradebook?grade=5&period=4').get_json()
         assert report['rows'][0]['average'] == 17
+        assert client.post('/teacher/bimester-grades', data={**form, 'exam': 0}).status_code == 400
         assert client.post('/teacher/bimester-grades', data={**form, 'student_id': 2}).status_code == 400
         with client.session_transaction() as session:
             session['user_role'] = 'student'
@@ -155,10 +176,10 @@ def test_settings_accept_six_weights_and_explain_invalid_total():
         assert 'sumar 100' in response.get_data(as_text=True)
 
 
-def test_student_progress_uses_current_bimester_weighted_marks(monkeypatch):
+def test_student_progress_uses_current_bimester_weighted_marks(monkeypatch, gradebook):
     from services.student_learning_service import build_student_progress
     year, period = grades.current_term()
-    grades.save_marks(1, year, period, SCORES, 1)
+    save_complete_marks(gradebook, year, period)
     monkeypatch.setattr(db_service, 'fetch_student_progress', lambda identity: {})
     monkeypatch.setattr(db_service, 'fetch_student_activity_summary', lambda identity: {})
     monkeypatch.setattr(db_service, 'fetch_topic_progress', lambda identity: [])

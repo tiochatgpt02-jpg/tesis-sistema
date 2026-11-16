@@ -17,6 +17,8 @@
 <body class="bg-light"><main class="container-fluid p-3 p-md-4">
 <a href="/teacher/">Volver al panel docente</a>
 <h1 class="mt-3">Libreta bimestral</h1>
+{% if not calendar_confirmed %}<p class="alert alert-warning">Las fechas de este año son provisionales. <a href="/teacher/academic-calendar?year={{ year }}">Revisar calendario académico</a>.</p>{% endif %}
+{% if closure %}<p class="alert alert-info">Bimestre cerrado. Se muestran las notas y los porcentajes conservados al cierre. Las notas pendientes siguen pendientes. Reabre el bimestre para efectuar cambios.</p>{% endif %}
 <p>Notas de 0 a 20. Una casilla vacía significa pendiente; una nota de 0 sí cuenta. Los juegos no modifican esta libreta.</p>
 {% for category,message in get_flashed_messages(with_categories=true) %}<p role="status" class="alert alert-{{ category }}">{{ message }}</p>{% endfor %}
 {% if error %}<p role="alert" class="alert alert-danger">{{ error }}</p>{% endif %}
@@ -28,15 +30,15 @@
 </form>
 <details class="card p-3 mb-4">
 <summary class="fw-bold">Vincular prácticas y examen del sistema</summary>
-<p class="mt-3">Elige actividades de este grado para obtener sus notas automáticamente. Se toma el último intento registrado entre {{ date_from }} y {{ date_to }}. Sin vínculo, el docente registra la nota en la tabla.</p>
+<p class="mt-3">Elige actividades de este grado para obtener sus notas automáticamente. Se toma el último intento registrado entre {{ date_from }} y {{ date_to }}. Sin vínculo o sin intento, la nota permanece pendiente.</p>
 <form method="post" action="/teacher/bimester-grades" class="row g-3">
 <input type="hidden" name="action" value="sources"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="grade" value="{{ grade }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="period" value="{{ period }}">
 {% for key,label in components if key in ('practice_1','practice_2','exam') %}
-<div class="col-md-4"><label for="source-{{ key }}" class="form-label">{{ label }}</label><select id="source-{{ key }}" name="{{ key }}" class="form-select">
-<option value="">Sin vínculo: registro manual</option>
+<div class="col-md-4"><label for="source-{{ key }}" class="form-label">{{ label }}</label><select id="source-{{ key }}" name="{{ key }}" class="form-select" {{ 'disabled' if closure else '' }}>
+<option value="">Seleccionar actividad para nota automática</option>
 {% for option in options if option.kind == ('exam' if key == 'exam' else 'practice') %}<option value="{{ option.value }}" {{ 'selected' if selected_sources.get(key)==option.value else '' }}>{{ option.label }}</option>{% endfor %}
 </select></div>{% endfor %}
-<div><button type="submit" class="btn btn-outline-primary">Guardar vínculos</button></div>
+<div><button type="submit" class="btn btn-outline-primary" {{ 'disabled' if closure else '' }}>Guardar vínculos</button></div>
 </form></details>
 <div class="grade-table-wrap border rounded bg-white" tabindex="0" role="region" aria-labelledby="grade-table-caption">
 <table class="table table-bordered grade-table mb-0">
@@ -45,13 +47,17 @@
 <tbody>{% for row in rows %}{% set student=row.student %}
 <tr data-student-id="{{ student.id }}"><th scope="row">{{ student.first_name }} {{ student.last_name or '' }}</th>
 {% for key,label in components %}<td>
-{% if row.linked[key] %}<span class="component-value" data-component="{{ key }}">{{ row.scores[key] if row.scores[key] is not none else 'Pendiente' }}</span><small class="d-block text-muted">Automática</small>
+{% if closure or key in row.automatic %}<span class="component-value" data-component="{{ key }}">{{ row.scores[key] if row.scores[key] is not none else 'Pendiente' }}</span><small class="d-block text-muted">{{ 'Conservada al cierre' if closure else ('Automática' if row.linked[key] else 'Falta vincular actividad') }}</small>
 {% else %}<label for="mark-{{ student.id }}-{{ key }}" class="visually-hidden">{{ label }} de {{ student.first_name }}</label><input id="mark-{{ student.id }}-{{ key }}" form="marks-{{ student.id }}" name="{{ key }}" class="form-control" type="number" min="0" max="20" step="0.01" value="{{ row.scores[key] if row.scores[key] is not none else '' }}" aria-describedby="grade-help">
 {% endif %}</td>{% endfor %}
 <td class="student-average fw-bold">{{ row.average if row.average is not none else 'Pendiente' }}</td>
 <td><form id="marks-{{ student.id }}" method="post" action="/teacher/bimester-grades">
-<input type="hidden" name="action" value="marks"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="student_id" value="{{ student.id }}"><input type="hidden" name="grade" value="{{ grade }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="period" value="{{ period }}"><button type="submit" class="btn btn-primary">Guardar fila</button></form></td></tr>
+<input type="hidden" name="action" value="marks"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="student_id" value="{{ student.id }}"><input type="hidden" name="grade" value="{{ grade }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="period" value="{{ period }}"><button type="submit" class="btn btn-primary" {{ 'disabled' if closure else '' }}>Guardar fila</button></form></td></tr>
 {% else %}<tr><td colspan="9">No hay alumnos registrados en este grado.</td></tr>{% endfor %}</tbody></table></div>
-<p id="grade-help" class="text-muted mt-3">Las casillas vacías permanecen pendientes. Vaciar una nota manual y guardar elimina esa nota. El promedio final requiere los seis componentes con peso mayor que cero.</p>
+<p id="grade-help" class="text-muted mt-3">Tareas, participación y libro se registran manualmente. Las prácticas y el examen usan las actividades vinculadas. El promedio queda pendiente si falta alguna nota con peso mayor que cero.</p>
 <p><a href="/teacher/settings">Consultar o ajustar porcentajes</a></p>
+<details class="card p-3 mt-3"><summary class="fw-bold">{{ 'Reabrir bimestre' if closure else 'Cerrar bimestre' }}</summary>
+<p class="mt-3">El cierre conserva las notas y sus porcentajes, incluso cuando hay pendientes. Para una recuperación posterior, reabre el bimestre y autoriza el intento adicional del examen cuando corresponda.</p>
+<form method="post" action="/teacher/bimester-grades"><input type="hidden" name="action" value="{{ 'reopen' if closure else 'close' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="grade" value="{{ grade }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="period" value="{{ period }}">
+<label for="closure-reason" class="form-label">Motivo</label><textarea id="closure-reason" name="reason" class="form-control mb-3" minlength="5" maxlength="500" required></textarea><button type="submit" class="btn btn-outline-primary">{{ 'Confirmar reapertura' if closure else 'Confirmar cierre' }}</button></form></details>
 </main></body></html>

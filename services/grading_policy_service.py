@@ -44,6 +44,7 @@ def save_component_policy(values):
 
 
 def component_summary(results, policy):
+    policy = next((row['closed_policy'] for row in results if row.get('closed_policy')), policy)
     weights = validate_component_weights(policy['weights'])
     latest = {}
     for row in academic_notes(results):

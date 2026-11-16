@@ -4,6 +4,23 @@ from typing import Any, Dict, Optional
 from services.ml.prediction_service import get_risk_prediction_service
 
 
+def _unavailable_payload(prediction, name, score, student_id=None):
+    no_history = prediction.get('code') == 'INSUFFICIENT_HISTORY' or prediction.get('risk_level') == 'Sin datos'
+    message = ('Registra prácticas y evaluaciones para disponer de historial académico.' if no_history else
+               prediction.get('message') or 'No se pudo obtener una predicción válida. No se ha asignado riesgo.')
+    return {
+        'success': bool(no_history), 'code': prediction.get('code', 'PREDICTION_ERROR'),
+        'status': prediction.get('code', 'PREDICTION_ERROR'), 'message': message,
+        'student_id': student_id, 'student_name': name, 'score': round(float(score or 0), 2),
+        'level': 'Sin datos' if no_history else 'No disponible',
+        'risk_level': 'Sin datos' if no_history else 'No disponible',
+        'risk_probability': None, 'predicted_class': None,
+        'model': prediction.get('model', {}), 'main_factors': prediction.get('main_factors', []),
+        'explanation': prediction.get('explanation', []),
+        'recommendation': message, 'summary': message,
+    }
+
+
 def build_prediction_payload(
     student_name: Optional[str] = None,
     score: Optional[float] = None,
@@ -22,6 +39,8 @@ def build_prediction_payload(
 
     if student_id is not None:
         prediction = service.predict_for_student(int(student_id), cutoff_date=cutoff_date)
+        if not prediction.get('success') or prediction.get('risk_probability') is None:
+            return _unavailable_payload(prediction, name, score, int(student_id))
         if prediction.get('success'):
             risk_level = prediction.get('risk_level', 'Bajo')
             level_map = {'Bajo': 'excelente', 'Medio': 'bueno', 'Alto': 'necesita apoyo'}
@@ -44,27 +63,12 @@ def build_prediction_payload(
                 'risk_probability': prob,
                 'model_version': prediction.get('model_version', 'v1'),
                 'model': prediction.get('model', {}),
+                'validation_scope': prediction.get('validation_scope'),
+                'notice': prediction.get('notice'),
                 'main_factors': prediction.get('main_factors', []),
                 'explanation': prediction.get('explanation', []),
                 'recommendation': recommendation,
                 'summary': summary,
-            }
-        else:
-            return {
-                'success': False,
-                'code': 'MODEL_NOT_AVAILABLE',
-                'status': 'MODEL_NOT_AVAILABLE',
-                'message': (
-                    'El modelo de riesgo académico todavía no ha sido entrenado. '
-                    'Se requieren datos históricos reales del colegio para su entrenamiento.'
-                ),
-                'student_id': int(student_id),
-                'student_name': name,
-                'score': round(float(score or 0), 2),
-                'level': 'No disponible',
-                'risk_level': 'No disponible',
-                'recommendation': 'El sistema está preparado para entrenar un modelo supervisado real en cuanto se proporcione el dataset institucional.',
-                'summary': 'Modelo predictivo de Machine Learning no disponible. Pendiente de entrenamiento con datos reales.',
             }
 
     # Si no se pasó student_id, verificar disponibilidad del modelo
@@ -109,6 +113,8 @@ def build_prediction_payload(
         'submissions_count': 0,
     }
     prediction = service.predict_for_features(features)
+    if not prediction.get('success') or prediction.get('risk_probability') is None:
+        return _unavailable_payload(prediction, name, score_20)
     risk_level = prediction.get('risk_level', 'Bajo')
     level_map = {'Bajo': 'excelente', 'Medio': 'bueno', 'Alto': 'necesita apoyo'}
     level = level_map.get(risk_level, 'bueno')
@@ -123,6 +129,8 @@ def build_prediction_payload(
         'risk_probability': prob,
         'model_version': prediction.get('model_version', 'v1'),
         'model': prediction.get('model', {}),
+        'validation_scope': prediction.get('validation_scope'),
+        'notice': prediction.get('notice'),
         'main_factors': prediction.get('main_factors', []),
         'explanation': prediction.get('explanation', []),
         'recommendation': (

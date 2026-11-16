@@ -36,6 +36,7 @@ def run_ml_pipeline(
     split_strategy: str = 'temporal',
     cutoff_date: str = '2024-04-30',
     verbose: bool = True,
+    output_root: Path | None = None,
 ) -> Dict[str, Any]:
     """Ejecuta el pipeline integral paso a paso con trazabilidad total."""
     start_time = time.time()
@@ -52,8 +53,9 @@ def run_ml_pipeline(
 
     # 1. Rutas de directorios
     raw_dir = ROOT / "ml" / "datasets" / source_clean / "raw"
-    processed_dir = ROOT / "ml" / "datasets" / source_clean / "processed"
-    models_dir = ROOT / "ml" / "models" / source_clean
+    artifact_root = Path(output_root).resolve() if output_root is not None else ROOT / 'ml'
+    processed_dir = artifact_root / "datasets" / source_clean / "processed"
+    models_dir = artifact_root / "models" / source_clean
 
     # Identificar archivo fuente
     if source_clean == 'benchmark':
@@ -151,7 +153,7 @@ def run_ml_pipeline(
         print(f"       - {f}")
 
     # Sincronizar directorio de modelo raíz si es benchmark (para retrocompatibilidad)
-    if source_clean == 'benchmark':
+    if source_clean == 'benchmark' and output_root is None:
         import joblib
         root_model_joblib = ROOT / "ml" / "models" / "student_risk_pipeline.joblib"
         root_metadata = ROOT / "ml" / "models" / "metadata.json"

@@ -1,5 +1,8 @@
 # Arquitectura de negocio propuesta para el aula de computación
 
+Documento histórico. La revisión vigente con reglas, brechas, gobierno y evidencia se encuentra en [Arquitectura con TOGAF 9.2](arquitectura-togaf-9-2.md) y [Libreta bimestral](libreta-bimestral.md). La aceptación institucional se registra por separado.
+
+
 Este documento describe una propuesta de alcance de arquitectura de negocio alineada con las observaciones comunicadas del jurado. No afirma una implementación completa ni certificación de TOGAF. La descripción del proceso previo debe validarse con el docente y las tesistas; el repositorio por sí solo no demuestra cómo trabajaba el colegio antes de la intervención.
 
 ## Propósito y participantes

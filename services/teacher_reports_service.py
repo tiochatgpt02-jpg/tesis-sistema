@@ -40,15 +40,8 @@ def to_scale_20(score: Any) -> float:
 
 
 def period_date_range(period: str, year: Optional[int] = None) -> Tuple[str, str, str]:
-    year = year or date.today().year
-    info = PERIODS.get(str(period), PERIODS['1'])
-    start_month, start_day = info['start']
-    end_month, end_day = info['end']
-    return (
-        date(year, start_month, start_day).isoformat(),
-        date(year, end_month, end_day).isoformat(),
-        info['label'],
-    )
+    from services.academic_calendar_service import period_range
+    return period_range(period, year)
 
 
 def _average(values: List[float]) -> float:
@@ -184,7 +177,7 @@ def build_student_risk_analysis(student: Dict[str, Any]) -> Dict[str, Any]:
 
     if student_id and prediction_service.is_available():
         pred = prediction_service.predict_for_student(int(student_id))
-        if pred.get('success'):
+        if pred.get('success') and pred.get('risk_probability') is not None:
             return {
                 'student_name': f"{student.get('first_name', 'Estudiante')} {student.get('last_name', '')}".strip(),
                 'risk_level': pred.get('risk_level', 'Bajo').lower(),
@@ -194,24 +187,12 @@ def build_student_risk_analysis(student: Dict[str, Any]) -> Dict[str, Any]:
                 'model_version': pred.get('model_version'),
             }
 
-    # Si no hay modelo entrenado disponible, se aplica regla pedagógica formativa explícitamente etiquetada
-    progress = int(student.get('progress', 0) or 0)
-    if progress >= 80:
-        risk = 'bajo'
-        recommendation = 'Mantener el ritmo actual y reforzar retos avanzados.'
-    elif progress >= 50:
-        risk = 'medio'
-        recommendation = 'Continuar con práctica guiada y actividades cortas.'
-    else:
-        risk = 'alto'
-        recommendation = 'Se recomienda reforzar contenidos básicos y repetir actividades de práctica.'
-
+    unavailable = pred if student_id and prediction_service.is_available() else {}
     return {
         'student_name': f"{student.get('first_name', 'Estudiante')} {student.get('last_name', '')}".strip(),
-        'risk_level': risk,
-        'recommendation': recommendation,
-        'progress': progress,
-        'method': 'pedagogical_heuristic',
-        'ml_status': 'MODEL_NOT_AVAILABLE',
-        'notice': 'Regla pedagógica formativa basada en promedio (Modelo predictivo ML no entrenado).',
+        'risk_level': 'no disponible', 'risk_probability': None,
+        'recommendation': unavailable.get('message') or 'Se necesita un alumno con historial y un modelo disponible para estimar riesgo.',
+        'progress': int(student.get('progress', 0) or 0), 'method': 'unavailable',
+        'ml_status': unavailable.get('code', 'MODEL_NOT_AVAILABLE' if student_id else 'STUDENT_REQUIRED'),
+        'notice': 'No se ha calculado una clasificación de riesgo.',
     }

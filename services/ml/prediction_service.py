@@ -60,13 +60,16 @@ class RiskPredictionService:
             return res
 
         metadata = self.registry.get_metadata()
+        source = metadata.get('dataset_source', self.registry.source)
         risk_prob = res.get('risk_probability')
         risk_level = res.get('risk_level', 'Bajo')
 
         return {
             'success': True,
+            'code': res.get('code', 'PREDICTION_AVAILABLE'),
+            'status': res.get('status', 'PREDICTION_AVAILABLE'),
             'risk_probability': risk_prob,
-            'predicted_class': res.get('predicted_class', 0),
+            'predicted_class': res.get('predicted_class'),
             'risk_level': risk_level,
             'prediction': res.get('prediction', {'risk_level': 'LOW', 'probability': risk_prob}),
             'model': res.get('model', {'name': metadata.get('name', 'SupervisedModel'), 'version': metadata.get('version', 'v1'), 'dataset': self.registry.source}),
@@ -74,6 +77,9 @@ class RiskPredictionService:
             'main_factors': res.get('main_factors', []),
             'explanation': res.get('explanation', []),
             'features_used': res.get('features_used', {}),
+            'validation_scope': source,
+            'notice': ('Modelo de referencia: sus resultados no constituyen una validación con alumnos del colegio.'
+                       if source == 'benchmark' else 'Consulta el informe de validación del modelo institucional.'),
         }
 
     def predict_for_student(
@@ -100,10 +106,13 @@ class RiskPredictionService:
                 'explanation': ['model not available'],
             }
 
-        features = FeatureService.extract_features_for_student(
-            student_id=student_id,
-            cutoff_date=cutoff_date,
-        )
+        try:
+            features = FeatureService.extract_features_for_student(student_id=student_id, cutoff_date=cutoff_date)
+        except Exception:
+            result = self._get_predictor()._unavailable_prediction(
+                'FEATURE_DATA_UNAVAILABLE', 'No se pudo consultar el historial académico. Inténtalo nuevamente.')
+            result['student_id'] = int(student_id)
+            return result
 
         result = self.predict_for_features(features)
         result['student_id'] = int(student_id)

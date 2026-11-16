@@ -320,6 +320,15 @@ def api_update_ai_game(game_id):
     if not is_valid or not validated:
         return jsonify({'error': f'Los cambios no son válidos: {err_msg}', 'success': False}), 400
 
+    stored_content = dict(existing.get('content_json') or {})
+    stored_content.pop('_meta', None)
+    changed = (validated['title'] != existing.get('title')
+               or validated['instruction'] != existing.get('instruction')
+               or validated['content'] != stored_content
+               or validated.get('difficulty') != existing_metadata.get('difficulty', 'easy'))
+    if changed:
+        new_status = 'PENDING_REVIEW'
+
     update_ai_generated_game(
         game_id=game_id,
         title=validated['title'],

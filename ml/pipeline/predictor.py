@@ -212,11 +212,22 @@ class AcademicRiskPredictor:
                 'explanation': ['model load error'],
             }
 
-        total_attempts = float(feature_dict.get('total_attempts', 0) or 0)
+        try:
+            total_attempts = float(feature_dict.get('total_attempts', 0) or 0)
+            feature_names = self.get_features()
+            vector = [float(feature_dict.get(key, 0.0) or 0.0) for key in feature_names]
+            X = np.array([vector], dtype=float)
+            if not np.isfinite(X).all() or not np.isfinite(total_attempts):
+                raise ValueError('Non-finite input')
+        except (TypeError, ValueError, OverflowError):
+            return self._unavailable_prediction('INVALID_FEATURES', 'Los datos académicos no permiten calcular una predicción válida.')
         # Si un alumno no tiene historial absoluto
         if total_attempts == 0 and not any(feature_dict.get(k) for k in ['average_score', 'last_score']):
             return {
                 'success': True,
+                'code': 'INSUFFICIENT_HISTORY',
+                'status': 'INSUFFICIENT_HISTORY',
+                'predicted_class': None,
                 'prediction': {
                     'risk_level': 'UNKNOWN',
                     'probability': None,
@@ -232,25 +243,24 @@ class AcademicRiskPredictor:
                 'risk_level': 'Sin datos',
             }
 
-        feature_names = self.get_features()
-        vector = [float(feature_dict.get(k, 0.0) or 0.0) for k in feature_names]
-        X = np.array([vector], dtype=float)
-
-        risk_prob = 0.5
-        predicted_class = 0
-
-        if hasattr(model, 'predict_proba'):
-            try:
-                proba = model.predict_proba(X)[0]
-                risk_prob = round(float(proba[1]) if len(proba) >= 2 else float(proba[0]), 4)
-            except Exception:
-                risk_prob = 0.5
-
         try:
-            preds = model.predict(X)
+            # The trained binary target is 0=not at risk and 1=at risk.
+            # Locate class 1 explicitly instead of assuming its probability column.
+            classes = np.asarray(model.classes_)
+            if classes.shape != (2,) or set(classes.tolist()) != {0, 1}:
+                raise ValueError('Unexpected target labels')
+            probabilities = np.asarray(model.predict_proba(X), dtype=float)
+            if (probabilities.shape != (1, 2) or not np.isfinite(probabilities).all()
+                    or (probabilities < 0).any() or (probabilities > 1).any()
+                    or not np.isclose(probabilities[0].sum(), 1.0, atol=1e-6)):
+                raise ValueError('Invalid probabilities')
+            preds = np.asarray(model.predict(X))
+            if preds.shape != (1,) or preds[0] not in (0, 1):
+                raise ValueError('Invalid predicted class')
+            risk_prob = round(float(probabilities[0, classes.tolist().index(1)]), 4)
             predicted_class = int(preds[0])
         except Exception:
-            predicted_class = 1 if risk_prob >= 0.5 else 0
+            return self._unavailable_prediction('PREDICTION_ERROR', 'No se pudo calcular la predicción. No se ha asignado un nivel de riesgo.')
 
         if risk_prob >= 0.65:
             risk_level_code = 'HIGH'
@@ -286,4 +296,15 @@ class AcademicRiskPredictor:
             'main_factors': main_factors_es,
             'explanation': explanation_en,
             'features_used': {k: feature_dict.get(k) for k in feature_names},
+        }
+
+    def _unavailable_prediction(self, code: str, message: str) -> Dict[str, Any]:
+        meta = self.get_metadata()
+        return {
+            'success': False, 'code': code, 'status': code, 'message': message,
+            'risk_probability': None, 'predicted_class': None, 'risk_level': 'No disponible',
+            'prediction': {'risk_level': 'UNKNOWN', 'probability': None},
+            'model': {'name': meta.get('name'), 'version': meta.get('version'),
+                      'dataset': meta.get('dataset_source', self.model_dir.name)},
+            'main_factors': ['Predicción no disponible'], 'explanation': [code.lower()],
         }

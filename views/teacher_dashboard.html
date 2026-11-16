@@ -278,6 +278,7 @@
 
             <div id="section-reportes" class="section-panel">
                 <a class="btn btn-primary mb-3" href="/teacher/bimester-grades">Registrar notas bimestrales</a>
+                <a class="btn btn-outline-primary mb-3" href="/teacher/institutional-history">Historial institucional</a>
                 <a class="btn btn-outline-primary mb-3" href="/teacher/settings">Pesos de notas y reapertura de exámenes</a>
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <div>
@@ -546,9 +547,11 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small fw-semibold">Título de la Evaluación</label>
+                                <label for="assessment-gen-title-input" class="form-label small fw-semibold">Título de la Evaluación</label>
                                 <input type="text" id="assessment-gen-title-input" class="form-control form-control-sm" placeholder="Ej: Evaluación de Comprensión">
                             </div>
+                            <div class="col-md-3"><label for="assessment-gen-kind" class="form-label small fw-semibold">Tipo</label><select id="assessment-gen-kind" class="form-select form-select-sm"><option value="practice">Práctica calificada</option><option value="exam">Examen bimestral</option></select></div>
+                            <div class="col-md-3"><label for="assessment-gen-count" class="form-label small fw-semibold">Preguntas</label><input id="assessment-gen-count" class="form-control form-control-sm" type="number" min="1" max="15" value="6" required></div>
                             <div class="col-md-3 d-flex gap-1">
                                 <button type="submit" id="btn-generate-assessment-ai" class="btn btn-warning btn-sm fw-bold w-100">
                                     <i class="bi bi-robot me-1"></i> Generar con IA
@@ -1095,7 +1098,8 @@ window.teacherTopics = {{ topics|tojson|safe }};
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/teacher.js?v=20261113-review2"></script>
+<script src="/static/js/teacher_game_editor.js?v=20261115-release"></script>
+<script src="/static/js/teacher.js?v=20261115-release"></script>
 <script src="/static/js/teacher_reports.js"></script>
 </body>
 </html>

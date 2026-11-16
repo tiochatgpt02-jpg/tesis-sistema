@@ -377,6 +377,8 @@ def build_student_risk_payload(student_id):
     return {
         'success': True,
         'student_id': int(student_id),
+        'model_notice': pred.get('notice'),
+        'prediction_status': pred.get('code'),
         'risk_level': feedback['risk_level'],
         'risk_level_label': feedback['risk_level_label'],
         'probability': prob,

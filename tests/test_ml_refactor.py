@@ -139,6 +139,7 @@ class TestModelInferenceStatus(unittest.TestCase):
     def test_prediction_with_loaded_mock_model(self):
         registry = get_model_registry()
         dummy_model = MagicMock()
+        dummy_model.classes_ = np.array([0, 1])
         dummy_model.predict.return_value = [1]
         dummy_model.predict_proba.return_value = [[0.20, 0.80]]
 

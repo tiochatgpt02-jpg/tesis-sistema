@@ -69,6 +69,9 @@ def api_generate_ai_assessment():
         return denied
 
     data = request.get_json(silent=True) or request.form or {}
+    kind = data.get('kind', 'exam')
+    if kind not in ('practice', 'exam'):
+        return jsonify({'success': False, 'error': 'Selecciona práctica o examen.'}), 400
     topic_id = data.get('topic_id')
     if not topic_id:
         return jsonify({'error': 'Debes indicar el ID del tema (topic_id)', 'success': False}), 400
@@ -77,7 +80,12 @@ def api_generate_ai_assessment():
     topic_title = topic.get('title') or data.get('topic_title') or f"Tema {topic_id}"
     grade = int(topic.get('grade') or data.get('grade') or 5)
     title = (data.get('title') or f"Evaluación de {topic_title}").strip()
-    question_count = 15
+    try:
+        question_count = int(data.get('question_count') or 15)
+        if not 1 <= question_count <= 15:
+            raise ValueError()
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'El número de preguntas debe estar entre 1 y 15.'}), 400
 
     presentations = get_presentations_for_topic(int(topic_id))
     if not presentations:
@@ -109,6 +117,13 @@ def api_generate_ai_assessment():
     unique_questions = set()
     verified_questions = []
     for question in raw_questions:
+        options = list(dict.fromkeys(str(value).strip() for value in question.get('options', []) if str(value).strip()))
+        answer = str(question.get('answer') or '').strip()
+        if len(options) < 2 or answer not in options:
+            continue
+        if answer not in options[:3]:
+            options = options[:2] + [answer]
+        question = {**question, 'options': options[:3], 'answer': answer}
         normalized_question = str(question.get('question') or '').strip().casefold()
         if normalized_question and normalized_question not in unique_questions:
             unique_questions.add(normalized_question)
@@ -126,7 +141,7 @@ def api_generate_ai_assessment():
         topic_id=int(topic_id),
         title=title,
         teacher_id=int(teacher_id),
-        status='GENERATED',
+        status='GENERATED', kind=kind,
     )
 
     # 2. Transicionar a PENDING_REVIEW (disponible para revisión del docente)
@@ -138,6 +153,11 @@ def api_generate_ai_assessment():
         q_text = str(q.get('question') or '').strip()
         options = q.get('options') or []
         answer = str(q.get('answer') or (options[0] if options else '')).strip()
+        if answer not in [str(value).strip() for value in options]:
+            continue
+        # The legacy question table has three alternatives. Never drop the correct one.
+        if answer not in [str(value).strip() for value in options[:3]]:
+            options = list(options[:2]) + [answer]
 
         opt_a = str(options[0]).strip() if len(options) > 0 else 'Opción A'
         opt_b = str(options[1]).strip() if len(options) > 1 else 'Opción B'
@@ -171,6 +191,7 @@ def api_generate_ai_assessment():
         'assessment_id': assessment_id,
         'topic_id': int(topic_id),
         'title': title,
+        'kind': kind,
         'presentation_id': presentation.get('id'),
         'presentation_title': presentation.get('title'),
         'source': raw_pack.get('source'),
@@ -235,6 +256,14 @@ def api_update_assessment_question(assessment_id, question_id):
         return denied
 
     data = request.get_json(silent=True) or request.form or {}
+    assessment = fetch_assessment_by_id(assessment_id)
+    existing = next((question for question in (assessment or {}).get('questions', []) if int(question['id']) == question_id), None)
+    if not existing:
+        return jsonify({'success': False, 'error': 'La pregunta no pertenece a esta evaluación.'}), 404
+    candidate_options = [str(data.get(key, existing.get(key)) or '').strip() for key in ('option_a', 'option_b', 'option_c')]
+    candidate_answer = str(data.get('answer', existing.get('answer')) or '').strip()
+    if not str(data.get('question', existing.get('question')) or '').strip() or len(set(candidate_options) - {''}) < 2 or candidate_answer not in candidate_options:
+        return jsonify({'success': False, 'error': 'Completa la pregunta y las alternativas, e indica una respuesta que aparezca entre ellas.'}), 400
     question_text = data.get('question')
     option_a = data.get('option_a')
     option_b = data.get('option_b')
@@ -253,6 +282,7 @@ def api_update_assessment_question(assessment_id, question_id):
     )
     if not success:
         return jsonify({'error': 'No se pudo actualizar la pregunta', 'success': False}), 400
+    update_assessment_status(assessment_id, 'PENDING_REVIEW')
 
     return jsonify({
         'success': True,
@@ -266,7 +296,11 @@ def api_delete_assessment_question(assessment_id, question_id):
     if denied:
         return denied
 
+    assessment = fetch_assessment_by_id(assessment_id)
+    if not any(int(question['id']) == question_id for question in (assessment or {}).get('questions', [])):
+        return jsonify({'success': False, 'error': 'La pregunta no pertenece a esta evaluación.'}), 404
     delete_question(question_id)
+    update_assessment_status(assessment_id, 'PENDING_REVIEW')
     return jsonify({
         'success': True,
         'message': 'Pregunta eliminada de la evaluación',

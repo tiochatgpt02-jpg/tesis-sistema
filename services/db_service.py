@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 import unicodedata
 import os
 import json
@@ -474,11 +474,13 @@ def record_student_result(student_id, topic_id=None, activity_type='actividades'
     if _use_mock():
         from services.mock_data import MOCK_STUDENT_NOTES
         record = {
+            'id': max((int(row.get('id') or 0) for row in MOCK_STUDENT_NOTES), default=0) + 1,
             'student_id': int(student_id), 'topic_id': int(topic_id) if topic_id else None,
             'activity_type': activity_type, 'item_type': item_type,
             'score': score_val, 'percentage': pct_val,
             'correct_answers': correct_answers,
             'wrong_answers': wrong_answers, 'time_spent_seconds': time_spent_seconds,
+            'created_at': str(created_at) if created_at is not None else datetime.now().isoformat(),
         }
         if created_at is not None:
             record['created_at'] = str(created_at)
@@ -1630,7 +1632,9 @@ def create_alert(alert_type, title, description, target_user_id=None, target_stu
 VALID_ASSESSMENT_STATUSES = ('GENERATED', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED')
 
 
-def create_assessment(topic_id, title, teacher_id=None, status='GENERATED'):
+def create_assessment(topic_id, title, teacher_id=None, status='GENERATED', kind='exam'):
+    if kind not in ('practice', 'exam'):
+        raise ValueError('El tipo debe ser práctica o examen.')
     status = status.upper() if status else 'GENERATED'
     if status not in VALID_ASSESSMENT_STATUSES:
         raise ValueError(f"Estado invÃ¡lido '{status}'. Permitidos: {VALID_ASSESSMENT_STATUSES}")
@@ -1644,14 +1648,15 @@ def create_assessment(topic_id, title, teacher_id=None, status='GENERATED'):
             'teacher_id': int(teacher_id) if teacher_id is not None else None,
             'title': title,
             'status': status,
+            'kind': kind,
             'created_at': datetime.now().isoformat(),
         }
         MOCK_ASSESSMENTS.append(record)
         return next_id
 
     return _execute(
-        'INSERT INTO assessment (topic_id, teacher_id, title, status) VALUES (%s, %s, %s, %s)',
-        (int(topic_id), teacher_id, title, status),
+        'INSERT INTO assessment (topic_id, teacher_id, title, status, kind) VALUES (%s, %s, %s, %s, %s)',
+        (int(topic_id), teacher_id, title, status, kind),
     )
 
 
@@ -1690,7 +1695,7 @@ def fetch_assessment_by_id(assessment_id):
         return ass
 
     ass = _query(
-        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.created_at, t.title AS topic_title, t.grade '
+        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.kind, a.created_at, t.title AS topic_title, t.grade '
         'FROM assessment a LEFT JOIN topics t ON t.id = a.topic_id WHERE a.id = %s',
         (int(assessment_id),),
         fetchone=True,
@@ -1728,7 +1733,7 @@ def fetch_assessments_for_topic(topic_id, status=None):
         return result
 
     sql = (
-        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.created_at, t.title AS topic_title '
+        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.kind, a.created_at, t.title AS topic_title '
         'FROM assessment a LEFT JOIN topics t ON t.id = a.topic_id WHERE a.topic_id = %s '
     )
     params = [int(topic_id)]
@@ -1780,7 +1785,7 @@ def fetch_all_assessments(status=None, grade=None, section=None, unit_number=Non
         return result
 
     sql = (
-        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.created_at, '
+        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.kind, a.created_at, '
         't.title AS topic_title, t.grade, t.section, t.unit_number, t.session_number '
         'FROM assessment a LEFT JOIN topics t ON t.id = a.topic_id '
     )
@@ -1909,6 +1914,7 @@ def fetch_published_assessment_for_topic(topic_id):
         published = [
             item for item in MOCK_ASSESSMENTS
             if int(item['topic_id']) == int(topic_id) and item.get('status') == 'PUBLISHED'
+            and item.get('kind', 'exam') == 'exam'
         ]
         ass = dict(max(published, key=lambda item: int(item.get('id') or 0))) if published else None
         if not ass:
@@ -1923,9 +1929,9 @@ def fetch_published_assessment_for_topic(topic_id):
         return ass
 
     ass = _query(
-        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.status, a.created_at, t.title AS topic_title, t.grade '
+        'SELECT a.id, a.topic_id, a.teacher_id, a.title, a.kind, a.status, a.created_at, t.title AS topic_title, t.grade '
         'FROM assessment a LEFT JOIN topics t ON t.id = a.topic_id '
-        'WHERE a.topic_id = %s AND a.status = \'PUBLISHED\' ORDER BY a.id DESC',
+        'WHERE a.topic_id = %s AND a.status = \'PUBLISHED\' AND a.kind = \'exam\' ORDER BY a.id DESC',
         (int(topic_id),),
         fetchone=True,
     )

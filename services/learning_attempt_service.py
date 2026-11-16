@@ -35,6 +35,11 @@ def start_attempt(student_id, topic_id, kind, scope, questions, assessment_id=No
         raise AttemptError('No hay preguntas disponibles.')
     if kind not in {'practice', 'exam'}:
         raise AttemptError('Tipo de intento no válido.')
+    # Freeze only the assessment contract. Database timestamps and other row
+    # metadata do not belong to the JSON snapshot or the student's questions.
+    fields = ('id', 'question', 'options', 'approved', 'subtopic', 'answer', 'correct_answer')
+    questions = [{key: deepcopy(question[key]) for key in fields if key in question}
+                 for question in questions]
     record = dict(id=str(uuid4()), student_id=int(student_id), topic_id=int(topic_id),
                   kind=kind, scope=str(scope), assessment_id=assessment_id,
                   questions=deepcopy(questions), started_at=datetime.now(timezone.utc), result=None)

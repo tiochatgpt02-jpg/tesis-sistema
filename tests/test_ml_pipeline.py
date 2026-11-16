@@ -207,7 +207,8 @@ class TestRunPipelineSingleCommand(unittest.TestCase):
     def test_run_pipeline_benchmark_execution(self):
         from ml.run_pipeline import run_ml_pipeline
 
-        summary = run_ml_pipeline(source='benchmark', split_strategy='temporal', cutoff_date='2024-04-30')
+        with tempfile.TemporaryDirectory() as directory:
+            summary = run_ml_pipeline(source='benchmark', split_strategy='temporal', cutoff_date='2024-04-30', output_root=Path(directory))
         self.assertEqual(summary['source'], 'benchmark')
         self.assertIn(summary['selected_algorithm'], {'RandomForest', 'GradientBoosting', 'LogisticRegression', 'DecisionTree'})
         self.assertGreater(summary['test_metrics']['accuracy'], 0.85)

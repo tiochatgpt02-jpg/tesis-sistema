@@ -16,6 +16,8 @@ from controllers.teacher_ai_games_controller import teacher_ai_games_blueprint
 from controllers.student_controller import student_blueprint
 from controllers.ai_controller import ai_blueprint
 from controllers.settings_controller import settings_blueprint
+from controllers.history_controller import history_blueprint
+from controllers.student_assessment_controller import student_assessment_blueprint
 from config import Config
 from services.db_service import test_connection
 from services.ai_service import check_ollama_status
@@ -91,6 +93,8 @@ app.register_blueprint(teacher_ai_games_blueprint)
 app.register_blueprint(student_blueprint)
 app.register_blueprint(ai_blueprint)
 app.register_blueprint(settings_blueprint)
+app.register_blueprint(history_blueprint)
+app.register_blueprint(student_assessment_blueprint)
 
 
 @app.route('/health')
