@@ -55,7 +55,7 @@ async function loadAcademicReport() {
     const body = document.getElementById('report-notes-body');
     if (!body) return;
     if (!data.rows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">No hay alumnos para este filtro.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="text-muted">No hay alumnos para este filtro.</td></tr>';
         return;
     }
     body.innerHTML = data.rows.map(row => `
@@ -66,11 +66,14 @@ async function loadAcademicReport() {
             <td>${row.evaluations}</td>
             <td><strong>${row.average ?? 'Pendiente'}</strong></td>
             <td>${levelBadge(row.level)}</td>
+            <td class="report-institutional-note"></td>
         </tr>
     `).join('');
 
     const reportRows = document.querySelectorAll('.report-note-row');
     reportRows.forEach(reportRow => {
+        reportRow.querySelector('.report-institutional-note').textContent =
+            institutionalNote(reportRow.dataset.id, query.period);
         reportRow.addEventListener('click', () => {
             const score = Number(reportRow.dataset.score || 0);
             selectedNotesRow = reportRow;

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 
 from flask import Blueprint, render_template, redirect, url_for, session, request, jsonify
@@ -11,6 +12,8 @@ from services.presentation_storage import (
 )
 
 from config import Config
+from services.academic_calendar_service import school_today
+from services.literal_history_service import fetch_history
 from services.ai_service import check_ollama_status, generate_topic_content, generate_topic_learning_pack, generate_questions_from_teacher_material
 from services.ml_service import build_prediction_payload
 from services.ml.prediction_service import get_risk_prediction_service
@@ -116,6 +119,19 @@ def teacher_home():
     )
     ollama = check_ollama_status()
     teacher_name = session.get('teacher_name', 'Profesor')
+    academic_year = school_today().year
+    institutional_notes = {period: {} for period in range(1, 5)}
+    for record in fetch_history(year=academic_year):
+        if record.get('subject', 'computacion') != 'computacion':
+            continue
+        period = int(record['period'])
+        rating = record['final_rating']
+        if period not in institutional_notes or rating not in ('AD', 'A', 'B', 'C'):
+            continue
+        unit = re.match(r'Unidad ([1-8]) - ', record.get('source_name') or '')
+        label = f'{rating} · Unidad {unit[1]}' if unit else rating
+        institutional_notes[period][int(record['student_id'])] = label
+    notes_period = max((period for period, notes in institutional_notes.items() if notes), default=1)
 
     return render_template(
         'teacher_dashboard.html',
@@ -126,6 +142,9 @@ def teacher_home():
         teacher_name=teacher_name,
         alerts_count=len(summary.get('alerts', [])),
         ollama=ollama,
+        academic_year=academic_year,
+        institutional_notes=institutional_notes,
+        notes_period=notes_period,
     )
 
 

@@ -129,14 +129,24 @@
 
                 <div class="panel-card">
                     <div class="form-row-grid mb-3">
-                        <div>
-                            <label class="form-label fw-semibold">Filtrar por grado</label>
-                            <select id="student-grade-filter" class="form-select">
-                                <option value="4">4° Grado</option>
-                                <option value="5" selected>5° Grado</option>
-                                <option value="6">6° Grado</option>
-                            </select>
-                        </div>
+                        <search class="row g-2" aria-label="Filtrar lista de estudiantes">
+                            <div class="col-sm-6">
+                                <label class="form-label fw-semibold" for="student-grade-filter">Filtrar por grado</label>
+                                <select id="student-grade-filter" class="form-select">
+                                    <option value="4">4.º Grado</option>
+                                    <option value="5" selected>5.º Grado</option>
+                                    <option value="6">6.º Grado</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label fw-semibold" for="student-period-filter">Bimestre · {{ academic_year }}</label>
+                                <select id="student-period-filter" class="form-select">
+                                    {% for number, label in [(1, 'I'), (2, 'II'), (3, 'III'), (4, 'IV')] %}
+                                    <option value="{{ number }}"{% if number == notes_period %} selected{% endif %}>Bimestre {{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </search>
                         <div>
                             <label class="form-label fw-semibold">Agregar estudiante</label>
                             <div class="input-group">
@@ -174,6 +184,7 @@
                                 <tr>
                                     <th>Estudiante</th>
                                     <th>Grado</th>
+                                    <th scope="col">Nota del colegio</th>
                                     <th>Progreso</th>
                                     <th>Observaciones</th>
                                     <th>Acciones</th>
@@ -189,6 +200,7 @@
                                     data-observations="{{ s.get('observations', '') }}">
                                     <td><strong>{{ s.first_name }} {{ s.last_name }}</strong></td>
                                     <td>{{ s.grade }}°</td>
+                                    <td class="student-institutional-note">{{ institutional_notes[notes_period].get(s.id|int, 'Sin registro') }}</td>
                                     <td style="min-width:120px">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="progress-bar-mini flex-grow-1">
@@ -331,7 +343,7 @@
                     <h5 class="fw-bold mb-3"><i class="bi bi-table"></i> 2. Notas de alumnos</h5>
                     <div class="row g-3 align-items-end mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Grado</label>
+                            <label class="form-label fw-semibold" for="notes-report-grade">Grado</label>
                             <select id="notes-report-grade" class="form-select">
                                 <option value="4">4.º Primaria</option>
                                 <option value="5" selected>5.º Primaria</option>
@@ -339,7 +351,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Periodo</label>
+                            <label class="form-label fw-semibold" for="notes-report-period">Periodo</label>
                             <select id="notes-report-period" class="form-select">
                                 <option value="1" selected>Bimestre I</option>
                                 <option value="2">Bimestre II</option>
@@ -353,6 +365,7 @@
                             <i class="bi bi-hand-index-thumb-fill me-1"></i> Selecciona un alumno de la tabla para ver su predicción de riesgo y factores explicativos en tiempo real.
                         </small>
                     </div>
+                    <p class="small text-muted mb-2">La nota del colegio viene del registro institucional. El promedio de 0 a 20 se calcula con evaluaciones y actividades del aula.</p>
                     <div class="table-responsive">
                         <table class="student-table">
                             <thead>
@@ -361,12 +374,13 @@
                                     <th>Alumno</th>
                                     <th>Actividades</th>
                                     <th>Evaluaciones</th>
-                                    <th>Promedio</th>
+                                    <th scope="col">Promedio del aula (0 a 20)</th>
                                     <th>Nivel</th>
+                                    <th scope="col">Nota del colegio</th>
                                 </tr>
                             </thead>
                             <tbody id="report-notes-body">
-                                <tr><td colspan="6" class="text-muted">Selecciona grado y periodo para ver las notas.</td></tr>
+                                <tr><td colspan="7" class="text-muted">Selecciona grado y periodo para ver las notas.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1099,7 +1113,8 @@ window.teacherTopics = {{ topics|tojson|safe }};
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/teacher_game_editor.js?v=20261115-release"></script>
-<script src="/static/js/teacher.js?v=20261115-release"></script>
-<script src="/static/js/teacher_reports.js"></script>
+<script type="application/json" id="teacher-institutional-notes">{{ institutional_notes|tojson }}</script>
+<script src="/static/js/teacher.js?v=20261121-institutional-notes"></script>
+<script src="/static/js/teacher_reports.js?v=20261121-institutional-notes"></script>
 </body>
 </html>

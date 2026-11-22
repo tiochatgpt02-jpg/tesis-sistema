@@ -13,6 +13,13 @@ let selectedStudentStatusDesc = null;
 
 window.selectedNotesRow = selectedNotesRow;
 
+const institutionalNotes = JSON.parse(
+    document.getElementById('teacher-institutional-notes')?.textContent || '{}'
+);
+
+function institutionalNote(studentId, period) {
+    return institutionalNotes[period]?.[studentId] ?? 'Sin registro';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const panels = document.querySelectorAll('.section-panel');
@@ -184,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gradeField = document.getElementById('student-grade');
     const selectedStudentName = document.getElementById('selected-student-name');
     const gradeFilter = document.getElementById('student-grade-filter');
+    const periodFilter = document.getElementById('student-period-filter');
     const addStudentBtn = document.getElementById('btn-add-student');
     const deleteStudentBtn = document.getElementById('btn-delete-student');
     const saveObservationsBtn = document.getElementById('btn-save-observations');
@@ -226,6 +234,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         clearSelection();
     }
+
+    periodFilter?.addEventListener('change', () => {
+        studentTableBody?.querySelectorAll('.student-row').forEach(row => {
+            row.querySelector('.student-institutional-note').textContent =
+                institutionalNote(row.dataset.id, periodFilter.value);
+        });
+    });
 
     function attachStudentRowListeners(row) {
         if (!row) return;
@@ -307,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newRow.innerHTML = `
             <td><strong>${student.first_name} ${student.last_name}</strong></td>
             <td>${student.grade}°</td>
+            <td class="student-institutional-note">Sin registro</td>
             <td style="min-width:120px">
                 <div class="d-flex align-items-center gap-2">
                     <div class="progress-bar-mini flex-grow-1">
