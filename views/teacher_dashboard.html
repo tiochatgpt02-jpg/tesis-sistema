@@ -68,6 +68,7 @@
 
         <!-- Main Content -->
         <main class="dashboard-main">
+            {% if demo_instance %}{% include 'demo_notice.html' %}{% endif %}
 
             <!-- SECCIÓN LISTA -->
             <div id="section-inicio" class="section-panel active">

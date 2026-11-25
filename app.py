@@ -32,6 +32,11 @@ if os.getenv('APP_ENV') == 'production':
         raise RuntimeError('Producción requiere SECRET_KEY propia y USE_MOCK_DATA=false.')
 
 
+@app.context_processor
+def demo_context():
+    return {'demo_instance': os.getenv('DEMO_INSTANCE') == 'true'}
+
+
 @app.before_request
 def protect_teacher_routes():
     if request.path.startswith('/teacher'):
