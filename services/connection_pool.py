@@ -38,5 +38,6 @@ def borrow_connection(url, row_factory):
     with _lock:
         if _pool is None:
             _pool = ConnectionPool(url, min_size=0, max_size=6, max_waiting=12, timeout=10,
+                                   check=ConnectionPool.check_connection,
                                    kwargs={'row_factory': row_factory, 'connect_timeout': 10, 'prepare_threshold': None})
     return BorrowedConnection(_pool)
