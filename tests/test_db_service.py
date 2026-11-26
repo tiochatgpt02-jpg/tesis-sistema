@@ -33,18 +33,17 @@ class PostgreSqlConnectionTests(unittest.TestCase):
 
 
 class DbServiceContractTests(unittest.TestCase):
-    def test_fetch_topics_for_grade_excludes_private_topics_in_mock(self):
-        db_service._use_mock = lambda: True
+    def test_fetch_topics_for_grade_respects_publication_and_section_in_mock(self):
         from services import mock_data
-        original_topics = list(mock_data.MOCK_TOPICS.get(5, []))
-        try:
-            mock_data.MOCK_TOPICS[5] = [
-                {'id': 1, 'title': 'Visible', 'grade': 5, 'status': 'Publicado'},
-                {'id': 2, 'title': 'Privado', 'grade': 5, 'status': 'Privado'},
-            ]
+        topics = [
+            {'id': 1, 'title': 'Visible', 'grade': 5, 'status': 'Publicado'},
+            {'id': 2, 'title': 'Privado', 'grade': 5, 'status': 'Privado'},
+            {'id': 3, 'title': 'Para B', 'grade': 5, 'status': 'Publicado', 'section': 'B'},
+        ]
+        with patch.object(Config, 'USE_MOCK_DATA', True), patch.dict(mock_data.MOCK_TOPICS, {5: topics}):
             self.assertEqual([item['id'] for item in db_service.fetch_topics_for_grade(5)], [1])
-        finally:
-            mock_data.MOCK_TOPICS[5] = original_topics
+            self.assertEqual([item['id'] for item in db_service.fetch_topics_for_grade(5, 'A')], [1])
+            self.assertEqual([item['id'] for item in db_service.fetch_topics_for_grade(5, ' b ')], [1, 3])
 
 
 if __name__ == '__main__':

@@ -176,8 +176,8 @@ def api_topic_lesson(topic_id):
     if denied:
         return jsonify({'error': 'No autorizado'}), 401
     grade = session.get('user_grade') or 5
-    topic = next((item for item in fetch_topics_for_grade(grade, _current_student_section()) if int(item.get('id')) == topic_id), None)
-    if not topic or str(topic.get('status') or '').strip() == 'Privado':
+    topic = _published_topic_for_student(topic_id)
+    if not topic:
         return jsonify({'error': 'Tema no disponible para tu grado'}), 404
     student = fetch_student_by_id(session.get('student_id', 1)) or {}
     progress = fetch_student_progress(session.get('student_id', 1))

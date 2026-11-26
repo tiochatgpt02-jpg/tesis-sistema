@@ -2188,10 +2188,10 @@ document.addEventListener('submit', async (e) => {
             true_false: { icon: '<i class="bi bi-search"></i>', name: 'Explorador de pistas', rule: 'Lee la pista y decide si es verdadera o falsa.', reward: '+10 estrellas' },
             fill_blank: { icon: '<i class="bi bi-pencil-fill"></i>', name: 'Constructor de frases', rule: 'Completa la idea usando una palabra de ayuda.', reward: '+10 estrellas' },
             matching: { icon: '<i class="bi bi-puzzle-fill"></i>', name: 'Conector de ideas', rule: 'Une cada idea con su pareja correcta.', reward: '+10 estrellas' },
-            memory: { icon: '<i class="bi bi-suit-spade-fill"></i>', name: 'Guardían de la memoria', rule: 'Voltea dos cartas y encuentra las parejas mágicas.', reward: '+10 estrellas' },
+            memory: { icon: '<i class="bi bi-suit-spade-fill"></i>', name: 'Guardián de la memoria', rule: 'Voltea dos cartas y encuentra las parejas mágicas.', reward: '+10 estrellas' },
             ordering: { icon: '<i class="bi bi-signpost-split-fill"></i>', name: 'Ordenador de aventuras', rule: 'Mueve las piezas hasta contar la historia en orden.', reward: '+10 estrellas' },
             drag_drop: { icon: '<i class="bi bi-arrows-move"></i>', name: 'Clasificador experto', rule: 'Arrastra cada tarjeta al lugar donde pertenece.', reward: '+10 estrellas' },
-            challenge: { icon: '<i class="bi bi-rocket-takeoff-fill"></i>', name: 'Capitán de la misión', rule: 'Supera los tres niveles para llegar a la meta.', reward: '+30 estrellas' }
+            challenge: { icon: '<i class="bi bi-rocket-takeoff-fill"></i>', name: 'Capitán de la misión', rule: 'Supera los tres niveles para llegar a la meta.', reward: '+10 estrellas' }
         };
         const mission = missionByType[game.game_type] || { icon: '<i class="bi bi-stars"></i>', name: 'Explorador del saber', rule: 'Completa este reto a tu ritmo.', reward: '+10 estrellas' };
         arena.style.display = 'block';
@@ -2229,7 +2229,7 @@ document.addEventListener('submit', async (e) => {
             const question = content.question || 'Selecciona la respuesta correcta:';
             const options = content.options || [];
             const optButtons = options.map((opt, idx) => `
-                <button class="game-choice btn-ai-mc-option" data-answer="${opt.replace(/"/g, '&quot;')}">
+                <button class="game-choice btn-ai-mc-option" data-answer="${escapeText(opt)}">
                     <span class="choice-key">${idx + 1}</span>
                     ${escapeText(opt)}
                 </button>
@@ -2272,7 +2272,7 @@ document.addEventListener('submit', async (e) => {
             const sentence = content.sentence || content.question || 'Completa la frase: ______';
             const options = content.options || [];
             const optChips = options.length > 0
-                ? options.map(opt => `<button type="button" class="btn btn-outline-primary btn-sm rounded-pill fw-bold btn-fill-chip" data-word="${opt.replace(/"/g, '&quot;')}">${opt}</button>`).join(' ')
+                ? options.map(opt => `<button type="button" class="btn btn-outline-primary btn-sm rounded-pill fw-bold btn-fill-chip" data-word="${escapeText(opt)}">${escapeText(opt)}</button>`).join(' ')
                 : '';
 
             interactionHtml = `

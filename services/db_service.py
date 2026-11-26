@@ -187,29 +187,20 @@ def ensure_student_records_for_registered_users():
 
 def fetch_topics_for_grade(grade, section=None):
     grade = int(grade) if grade else 5
-    section = str(section or '').strip().upper() or None
+    section = str(section or '').strip().upper()
     if _use_mock():
         from services.mock_data import MOCK_TOPICS
         topics = MOCK_TOPICS.get(grade, MOCK_TOPICS[5])
         return [
             topic for topic in topics
             if str(topic.get('status') or '').strip() == 'Publicado'
-            and (
-                not section
-                or not topic.get('section')
-                or str(topic.get('section')).strip().upper() == section
-            )
+            and str(topic.get('section') or '').strip().upper() in ('', section)
         ]
 
-    params = [grade, 'Publicado']
-    section_clause = ''
-    if section:
-        section_clause = 'AND (section IS NULL OR UPPER(section) = %s) '
-        params.append(section)
     return _query(
         'SELECT * FROM topics WHERE grade = %s AND status = %s '
-        f'{section_clause}ORDER BY id',
-        tuple(params),
+        "AND COALESCE(UPPER(BTRIM(section)), '') IN ('', %s) ORDER BY id",
+        (grade, 'Publicado', section),
     )
 
 
@@ -962,6 +953,7 @@ def fetch_material_by_id(material_id):
 
 
 def fetch_all_materials_for_student(student_id, grade=None, section=None):
+    normalized_section = str(section or '').strip().upper()
     if _use_mock():
         from services.mock_data import MOCK_MATERIALS, MOCK_TOPICS
         reviewed_set = _MOCK_MATERIAL_REVIEWS.get(int(student_id), set())
@@ -971,7 +963,6 @@ def fetch_all_materials_for_student(student_id, grade=None, section=None):
             for t in g_topics:
                 all_topics[int(t['id'])] = t
         result = []
-        normalized_section = str(section or '').strip().upper() or None
         for item in MOCK_MATERIALS:
             topic = all_topics.get(int(item.get('topic_id', 0)), {})
             if str(topic.get('status') or '').strip() != 'Publicado':
@@ -981,7 +972,7 @@ def fetch_all_materials_for_student(student_id, grade=None, section=None):
             if grade is not None and topic.get('grade') is not None:
                 if int(topic.get('grade', 0)) != int(grade):
                     continue
-            if normalized_section and topic.get('section') and str(topic.get('section')).upper() != normalized_section:
+            if str(topic.get('section') or '').strip().upper() not in ('', normalized_section):
                 continue
             mat = dict(item)
             mat['topic_title'] = topic.get('title', 'Tema')
@@ -993,7 +984,7 @@ def fetch_all_materials_for_student(student_id, grade=None, section=None):
         for topic_id, topic in all_topics.items():
             if str(topic.get('status') or '').strip() != 'Publicado':
                 continue
-            if normalized_section and topic.get('section') and str(topic.get('section')).upper() != normalized_section:
+            if str(topic.get('section') or '').strip().upper() not in ('', normalized_section):
                 continue
             if grade is not None and topic.get('grade') is not None and int(topic.get('grade', 0)) != int(grade):
                 continue
@@ -1033,9 +1024,8 @@ def fetch_all_materials_for_student(student_id, grade=None, section=None):
     if grade is not None:
         sql += 'AND t.grade = %s '
         params.append(grade)
-    if section:
-        sql += 'AND (t.section IS NULL OR UPPER(t.section) = %s) '
-        params.append(str(section).strip().upper())
+    sql += "AND COALESCE(UPPER(BTRIM(t.section)), '') IN ('', %s) "
+    params.append(normalized_section)
     sql += 'ORDER BY m.id DESC'
     rows = _query(sql, tuple(params)) or []
     for r in rows:
@@ -1055,9 +1045,8 @@ def fetch_all_materials_for_student(student_id, grade=None, section=None):
     if grade is not None:
         pres_sql += 'AND t.grade = %s '
         pres_params.append(grade)
-    if section:
-        pres_sql += 'AND (t.section IS NULL OR UPPER(t.section) = %s) '
-        pres_params.append(str(section).strip().upper())
+    pres_sql += "AND COALESCE(UPPER(BTRIM(t.section)), '') IN ('', %s) "
+    pres_params.append(normalized_section)
     pres_sql += 'ORDER BY p.id DESC'
     for presentation in _query(pres_sql, tuple(pres_params)) or []:
         presentation['material_type'] = 'presentacion'
